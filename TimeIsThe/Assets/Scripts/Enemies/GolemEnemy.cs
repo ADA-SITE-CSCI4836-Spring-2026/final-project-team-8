@@ -21,7 +21,7 @@ public class GolemEnemy : EnemyPatrol
         sightRange     = 14f;
         sightAngle     = 120f;   // wide peripheral vision
         loseTargetRange = 25f;   // persistent — doesn't give up easily
-        patrolSpeed    = 1.2f;
-        chaseSpeed     = 2.5f;
+        patrolSpeed    = 0.8f;
+        chaseSpeed     = 1f;
     }
 }
