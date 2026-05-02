@@ -1,30 +1,17 @@
 using UnityEngine;
 using TMPro;
-using UnityEngine.UI;
 
 /// <summary>
-/// Always-visible HUD — do NOT manage this through UIManager.Show/Hide.
-/// Place it in the scene active from the start so OnEnable fires immediately.
+/// Displays the player's current age and remaining lives on the HUD.
+/// The time bar is managed separately — this script only owns the age text.
+///
+/// Add this component to the HUD Canvas GameObject.
+/// Assign the AgeText field in the Inspector.
 /// </summary>
 public class HUDView : MonoBehaviour
 {
-    [Header("Time (HP)")]
-    [SerializeField] private Slider timeBar;
-    [SerializeField] private TextMeshProUGUI timeText;   // e.g. "87s"
-
     [Header("Age")]
-    [SerializeField] private TextMeshProUGUI ageText;    // e.g. "Age 23"
-
-    private void Awake()
-    {
-        // Ensure slider is configured for 0-1 normalised value
-        if (timeBar != null)
-        {
-            timeBar.minValue = 0f;
-            timeBar.maxValue = 1f;
-            timeBar.value    = 1f;
-        }
-    }
+    [SerializeField] private TextMeshProUGUI ageText;  // e.g. "Age 30  (3 lives left)"
 
     private void OnEnable()
     {
@@ -38,31 +25,23 @@ public class HUDView : MonoBehaviour
 
     private void Start()
     {
-        // Pull current state immediately in case events already fired before
-        // this component enabled (e.g. PlayerStats Awake ran first)
+        // Pull current state immediately in case PlayerStats.Awake already
+        // fired before this component subscribed
         PlayerStats stats = FindObjectOfType<PlayerStats>();
         if (stats != null)
-            Refresh(stats.TimeRemaining, stats.MaxTime, stats.Age);
+            RefreshAge(stats.Age);
     }
 
     private void OnTimeChanged(PlayerTimeChangedEvent evt)
     {
-        Refresh(evt.TimeRemaining, evt.MaxTime, evt.Age);
+        RefreshAge(evt.Age);
     }
 
-    private void Refresh(float remaining, float max, int age)
+    private void RefreshAge(int age)
     {
-        if (timeBar != null)
-            timeBar.value = max > 0f ? remaining / max : 0f;
+        if (ageText == null) return;
 
-        if (timeText != null)
-            timeText.text = $"{Mathf.CeilToInt(remaining)}s";
-
-        if (ageText != null)
-        {
-            // Show age and how many deaths remain before game over
-            int deathsLeft = (PlayerStats.MAX_AGE - age) / PlayerStats.AGE_PER_DEATH;
-            ageText.text = $"Age {age}  ({deathsLeft} {(deathsLeft == 1 ? "life" : "lives")} left)";
-        }
+        int deathsLeft = (PlayerStats.MAX_AGE - age) / PlayerStats.AGE_PER_DEATH;
+        ageText.text = $"Age {age}  ({deathsLeft} {(deathsLeft == 1 ? "life" : "lives")} left)";
     }
 }
