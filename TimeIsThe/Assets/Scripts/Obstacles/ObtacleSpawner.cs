@@ -59,8 +59,9 @@ public class ObstacleSpawner : MonoBehaviour
 
     // ── Internal ──────────────────────────────────────────────────────────────
 
-    private Transform _playerTransform;
-    private Bounds    _bounds;
+    private Transform    _playerTransform;
+    private Bounds       _bounds;
+    private EnemyTracker _enemyTracker;
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -95,6 +96,11 @@ public class ObstacleSpawner : MonoBehaviour
         if (player != null)
             _playerTransform = player.transform;
 
+        // Get or add EnemyTracker
+        _enemyTracker = GetComponent<EnemyTracker>();
+        if (_enemyTracker == null)
+            _enemyTracker = gameObject.AddComponent<EnemyTracker>();
+
         // 1 — Spawn obstacles first
         Debug.Log("--- Spawning Rocks ---");
         SpawnObjects(rockPrefabs, rockCount, rockMinScale, rockMaxScale, minSpacingRocks);
@@ -118,6 +124,9 @@ public class ObstacleSpawner : MonoBehaviour
         Debug.Log("--- Spawning Enemies ---");
         SpawnEnemies(skeletonPrefab, skeletonCount, "Skeletons");
         SpawnEnemies(golemPrefab,    golemCount,    "Golems");
+
+        // 4 — Lock enemy count so tracker knows when all are dead
+        _enemyTracker.FinalizeCount();
     }
 
     // ── Obstacle spawning (unchanged logic, refactored to use _bounds) ────────
@@ -206,6 +215,9 @@ public class ObstacleSpawner : MonoBehaviour
                 patrol.SetWaypoints(waypoints);
             else
                 Debug.LogWarning($"[ObstacleSpawner] {enemy.name} has no EnemyPatrol component.");
+
+            // Register with tracker for win condition
+            _enemyTracker.RegisterEnemy();
 
             spawned++;
         }

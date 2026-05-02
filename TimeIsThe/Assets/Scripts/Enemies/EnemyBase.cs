@@ -65,15 +65,10 @@ public abstract class EnemyBase : MonoBehaviour
         Anim  = GetComponent<Animator>();
 
         CurrentHealth = maxHealth;
-
-        // Apply subclass defaults (can still be overridden in Inspector)
         ApplyStats();
 
-        Agent.speed = patrolSpeed;
-        Agent.stoppingDistance = attackRange * 0.9f;
-
-        // We rotate the transform manually via FaceMovementDirection / FaceTarget.
-        // Leaving updateRotation = true causes the agent and our code to fight → spinning.
+        // Don't touch Agent properties here — agent may not be on NavMesh yet.
+        // Properties are applied in Start() after the NavMesh is ready.
         Agent.updateRotation = false;
         Agent.angularSpeed   = 0f;
     }
@@ -83,7 +78,6 @@ public abstract class EnemyBase : MonoBehaviour
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
-            // Search on the tagged object and all its children
             _playerStats     = player.GetComponentInChildren<PlayerStats>();
             _playerTransform = player.transform;
 
@@ -94,12 +88,29 @@ public abstract class EnemyBase : MonoBehaviour
         {
             Debug.LogWarning($"[{name}] No GameObject tagged 'Player' found. Enemy AI disabled.");
             enabled = false;
+            return;
+        }
+
+        // Apply speed/distance now — agent should be on NavMesh by Start()
+        if (IsAgentReady)
+        {
+            Agent.speed            = patrolSpeed;
+            Agent.stoppingDistance = attackRange * 0.9f;
+        }
+        else
+        {
+            Debug.LogWarning($"[{name}] NavMeshAgent is not on a NavMesh at Start. " +
+                             "Place the enemy on baked NavMesh geometry or wait for runtime bake.");
         }
     }
+
+    /// <summary>True when the NavMeshAgent is active, enabled, and placed on a NavMesh.</summary>
+    private bool IsAgentReady => Agent != null && Agent.isActiveAndEnabled && Agent.isOnNavMesh;
 
     protected virtual void Update()
     {
         if (!IsAlive) return;
+        if (!IsAgentReady) return;   // not on NavMesh yet — skip AI
 
         _attackTimer -= Time.deltaTime;
 
@@ -137,6 +148,8 @@ public abstract class EnemyBase : MonoBehaviour
 
     private void ExecuteState()
     {
+        if (!IsAgentReady) return;
+
         switch (State)
         {
             case AIState.Patrol:
@@ -152,7 +165,6 @@ public abstract class EnemyBase : MonoBehaviour
             case AIState.Attack:
                 Agent.SetDestination(transform.position);
                 FaceTarget(_playerTransform.position);
-
                 if (_attackTimer <= 0f)
                     PerformAttack();
                 break;
@@ -164,21 +176,19 @@ public abstract class EnemyBase : MonoBehaviour
     private void EnterChase()
     {
         State = AIState.Chase;
-        Agent.speed = chaseSpeed;
-        Agent.isStopped = false;
+        if (IsAgentReady) { Agent.speed = chaseSpeed; Agent.isStopped = false; }
     }
 
     private void EnterAttack()
     {
         State = AIState.Attack;
-        Agent.isStopped = true;
+        if (IsAgentReady) Agent.isStopped = true;
     }
 
     private void EnterPatrol()
     {
         State = AIState.Patrol;
-        Agent.speed = patrolSpeed;
-        Agent.isStopped = false;
+        if (IsAgentReady) { Agent.speed = patrolSpeed; Agent.isStopped = false; }
         OnPatrolEnter();
     }
 
@@ -266,8 +276,8 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected virtual void OnDeath()
     {
-        Agent.isStopped = true;
-        Agent.enabled   = false;
+        if (IsAgentReady) { Agent.isStopped = true; }
+        Agent.enabled = false;
         Anim?.SetTrigger(DeadHash);
         EventBus.Publish(new EnemyDiedEvent(gameObject));
 
@@ -360,7 +370,7 @@ public abstract class EnemyBase : MonoBehaviour
     private void UpdateAnimator()
     {
         if (Anim == null) return;
-        float speed = Agent.isStopped ? 0f : Agent.velocity.magnitude;
+        float speed = (!IsAgentReady || Agent.isStopped) ? 0f : Agent.velocity.magnitude;
         Anim.SetFloat(SpeedHash, speed, 0.1f, Time.deltaTime);
     }
 
