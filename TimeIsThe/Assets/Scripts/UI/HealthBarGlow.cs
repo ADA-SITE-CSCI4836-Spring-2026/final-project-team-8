@@ -56,6 +56,16 @@ public class HealthBarGlow : MonoBehaviour
     void Start()
     {
         SetGlowActive(true);
+
+        // Pull current state immediately in case PlayerStats.Awake already
+        // published before this component's OnEnable subscribed
+        PlayerStats stats = FindObjectOfType<PlayerStats>();
+        if (stats != null)
+        {
+            _targetFill  = stats.MaxTime > 0f ? stats.TimeRemaining / stats.MaxTime : 1f;
+            _currentFill = _targetFill;
+            ApplyFill(_currentFill);
+        }
     }
 
     void Update()
@@ -103,6 +113,8 @@ public class HealthBarGlow : MonoBehaviour
 
     void ApplyFill(float amount)
     {
+        if (fill == null) return;   // guard — log a warning if not assigned
+
         // Main fill
         fill.fillAmount = amount;
         Color healthColor = GetHealthColor(amount);

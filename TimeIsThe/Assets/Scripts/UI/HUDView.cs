@@ -2,7 +2,11 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 
-public class HUDView : UIView
+/// <summary>
+/// Always-visible HUD — do NOT manage this through UIManager.Show/Hide.
+/// Place it in the scene active from the start so OnEnable fires immediately.
+/// </summary>
+public class HUDView : MonoBehaviour
 {
     [Header("Time (HP)")]
     [SerializeField] private Slider timeBar;
@@ -10,6 +14,17 @@ public class HUDView : UIView
 
     [Header("Age")]
     [SerializeField] private TextMeshProUGUI ageText;    // e.g. "Age 23"
+
+    private void Awake()
+    {
+        // Ensure slider is configured for 0-1 normalised value
+        if (timeBar != null)
+        {
+            timeBar.minValue = 0f;
+            timeBar.maxValue = 1f;
+            timeBar.value    = 1f;
+        }
+    }
 
     private void OnEnable()
     {
@@ -21,18 +36,29 @@ public class HUDView : UIView
         EventBus.Unsubscribe<PlayerTimeChangedEvent>(OnTimeChanged);
     }
 
+    private void Start()
+    {
+        // Pull current state immediately in case events already fired before
+        // this component enabled (e.g. PlayerStats Awake ran first)
+        PlayerStats stats = FindObjectOfType<PlayerStats>();
+        if (stats != null)
+            Refresh(stats.TimeRemaining, stats.MaxTime, stats.Age);
+    }
+
     private void OnTimeChanged(PlayerTimeChangedEvent evt)
     {
-        // Time bar
+        Refresh(evt.TimeRemaining, evt.MaxTime, evt.Age);
+    }
+
+    private void Refresh(float remaining, float max, int age)
+    {
         if (timeBar != null)
-            timeBar.value = evt.MaxTime > 0f ? evt.TimeRemaining / evt.MaxTime : 0f;
+            timeBar.value = max > 0f ? remaining / max : 0f;
 
-        // Time label — show whole seconds
         if (timeText != null)
-            timeText.text = $"{Mathf.CeilToInt(evt.TimeRemaining)}s";
+            timeText.text = $"{Mathf.CeilToInt(remaining)}s";
 
-        // Age label
         if (ageText != null)
-            ageText.text = $"Age {evt.Age}";
+            ageText.text = $"Age {age}";
     }
 }
