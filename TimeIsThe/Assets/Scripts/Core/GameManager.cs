@@ -10,6 +10,12 @@ public class GameManager : Singleton<GameManager>
     {
         base.Awake();
         CurrentState = GameState.Boot;
+
+        // Clear persisted age on fresh boot so Editor play sessions always start at age 20.
+        // In a real build this would only run on first launch — for now wiping on every boot
+        // is the correct behaviour since there's no main menu "continue" flow yet.
+        PlayerPrefs.DeleteKey("PlayerAge");
+        PlayerPrefs.Save();
     }
 
     private void OnEnable()
