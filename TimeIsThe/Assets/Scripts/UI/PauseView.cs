@@ -1,11 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// Attach to the Pause Menu canvas GameObject.
-/// The canvas MUST start ACTIVE in the scene so Awake runs and subscribes.
-/// The script hides itself immediately in Awake.
-/// </summary>
 public class PauseView : MonoBehaviour
 {
     [Header("Buttons")]
@@ -16,8 +11,8 @@ public class PauseView : MonoBehaviour
 
     private void Awake()
     {
-        // Use CanvasGroup alpha to hide instead of SetActive,
-        // so this GameObject stays active and keeps receiving events
+        Debug.Log("[PauseView] Awake called");
+
         _canvasGroup = GetComponent<CanvasGroup>();
         if (_canvasGroup == null)
             _canvasGroup = gameObject.AddComponent<CanvasGroup>();
@@ -26,24 +21,25 @@ public class PauseView : MonoBehaviour
         quitButton?.onClick.AddListener(OnQuitClicked);
 
         EventBus.Subscribe<GamePausedEvent>(OnPauseChanged);
+        Debug.Log("[PauseView] Subscribed to GamePausedEvent");
 
         SetVisible(false);
     }
 
     private void OnDestroy()
     {
-        resumeButton?.onClick.RemoveListener(OnResumeClicked);
-        quitButton?.onClick.RemoveListener(OnQuitClicked);
         EventBus.Unsubscribe<GamePausedEvent>(OnPauseChanged);
     }
 
     private void OnPauseChanged(GamePausedEvent evt)
     {
+        Debug.Log($"[PauseView] OnPauseChanged received. IsPaused={evt.IsPaused}");
         SetVisible(evt.IsPaused);
     }
 
     private void SetVisible(bool visible)
     {
+        Debug.Log($"[PauseView] SetVisible({visible})");
         _canvasGroup.alpha          = visible ? 1f : 0f;
         _canvasGroup.interactable   = visible;
         _canvasGroup.blocksRaycasts = visible;

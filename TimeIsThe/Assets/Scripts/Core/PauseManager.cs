@@ -39,6 +39,7 @@ public class PauseManager : MonoBehaviour
         IsPaused          = true;
         Time.timeScale    = 0f;
         UnlockCursor();
+        Debug.Log("[PauseManager] Publishing GamePausedEvent(true)");
         EventBus.Publish(new GamePausedEvent(true));
     }
 
@@ -47,6 +48,7 @@ public class PauseManager : MonoBehaviour
         IsPaused          = false;
         Time.timeScale    = 1f;
         LockCursor();
+        Debug.Log("[PauseManager] Publishing GamePausedEvent(false)");
         EventBus.Publish(new GamePausedEvent(false));
     }
 
