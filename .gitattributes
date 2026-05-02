@@ -3,6 +3,7 @@
 /TimeIsThe/*.unity merge=unityyamlmerge eol=lf
 /TimeIsThe/*.prefab merge=unityyamlmerge eol=lf
 /TimeIsThe/*.asset merge=unityyamlmerge eol=lf
+/TimeIsThe/*.meta merge=unityyamlmerge eol=lf
 /TimeIsThe/*.png filter=lfs diff=lfs merge=lfs -text
 /TimeIsThe/*.jpg filter=lfs diff=lfs merge=lfs -text
 /TimeIsThe/*.mp3 filter=lfs diff=lfs merge=lfs -text
