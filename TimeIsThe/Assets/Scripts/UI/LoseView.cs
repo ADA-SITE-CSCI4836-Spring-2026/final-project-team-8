@@ -4,30 +4,31 @@ using TMPro;
 
 /// <summary>
 /// Attach to the Lose / Game Over canvas GameObject.
-/// Shows when the player reaches age 60 (PlayerFinalDeathEvent).
-///
-/// Wire up the Restart and Quit buttons in the Inspector.
-/// Optionally assign a TextMeshProUGUI for the final age display.
+/// The canvas MUST start ACTIVE in the scene so Awake runs and subscribes.
 /// </summary>
-public class LoseView : UIView
+public class LoseView : MonoBehaviour
 {
     [Header("Buttons")]
     [SerializeField] private Button restartButton;
     [SerializeField] private Button quitButton;
 
     [Header("Optional")]
-    [SerializeField] private TextMeshProUGUI finalAgeText;  // e.g. "You reached age 60"
+    [SerializeField] private TextMeshProUGUI finalAgeText;
+
+    private CanvasGroup _canvasGroup;
 
     private void Awake()
     {
+        _canvasGroup = GetComponent<CanvasGroup>();
+        if (_canvasGroup == null)
+            _canvasGroup = gameObject.AddComponent<CanvasGroup>();
+
         restartButton?.onClick.AddListener(OnRestartClicked);
         quitButton?.onClick.AddListener(OnQuitClicked);
 
-        // Subscribe in Awake — canvas starts inactive so OnEnable won't fire
         EventBus.Subscribe<PlayerFinalDeathEvent>(OnFinalDeath);
 
-        // Start hidden
-        gameObject.SetActive(false);
+        SetVisible(false);
     }
 
     private void OnDestroy()
@@ -42,14 +43,18 @@ public class LoseView : UIView
         if (finalAgeText != null)
             finalAgeText.text = $"You reached age {evt.FinalAge}.\nTime ran out.";
 
-        // Pause time so the scene doesn't reload underneath the menu
-        Time.timeScale = 0f;
+        Time.timeScale       = 0f;
+        Cursor.lockState     = CursorLockMode.None;
+        Cursor.visible       = true;
 
-        // Unlock cursor so buttons are clickable
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible   = true;
+        SetVisible(true);
+    }
 
-        Show();
+    private void SetVisible(bool visible)
+    {
+        _canvasGroup.alpha          = visible ? 1f : 0f;
+        _canvasGroup.interactable   = visible;
+        _canvasGroup.blocksRaycasts = visible;
     }
 
     private void OnRestartClicked()
