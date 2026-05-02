@@ -68,6 +68,11 @@ public abstract class EnemyBase : MonoBehaviour
 
         Agent.speed = patrolSpeed;
         Agent.stoppingDistance = attackRange * 0.9f;
+
+        // We rotate the transform manually via FaceMovementDirection / FaceTarget.
+        // Leaving updateRotation = true causes the agent and our code to fight → spinning.
+        Agent.updateRotation = false;
+        Agent.angularSpeed   = 0f;
     }
 
     protected virtual void Start()
@@ -130,14 +135,15 @@ public abstract class EnemyBase : MonoBehaviour
         {
             case AIState.Patrol:
                 OnPatrolTick();
+                FaceMovementDirection();
                 break;
 
             case AIState.Chase:
                 Agent.SetDestination(_playerTransform.position);
+                FaceMovementDirection();
                 break;
 
             case AIState.Attack:
-                // Face the player, don't move
                 Agent.SetDestination(transform.position);
                 FaceTarget(_playerTransform.position);
 
@@ -181,17 +187,33 @@ public abstract class EnemyBase : MonoBehaviour
         float angle = Vector3.Angle(transform.forward, dirToPlayer);
         if (angle > sightAngle * 0.5f) return false;
 
-        // Line-of-sight raycast (aim at chest height)
+        // Line-of-sight raycast — cast from eye height, ignore self
         Vector3 eyePos    = transform.position + Vector3.up * 1.5f;
         Vector3 targetPos = _playerTransform.position + Vector3.up * 1.0f;
+        Vector3 dir       = (targetPos - eyePos).normalized;
+        float   rayDist   = Vector3.Distance(eyePos, targetPos);
 
-        if (Physics.Raycast(eyePos, (targetPos - eyePos).normalized, out RaycastHit hit,
-                            sightRange, sightBlockMask))
+        // Use QueryTriggerInteraction.Ignore so trigger colliders don't block LOS
+        RaycastHit[] hits = Physics.RaycastAll(eyePos, dir, rayDist,
+                                               sightBlockMask,
+                                               QueryTriggerInteraction.Ignore);
+
+        foreach (RaycastHit hit in hits)
         {
-            return hit.transform.IsChildOf(_playerTransform) || hit.transform == _playerTransform;
+            // Skip self and own children
+            if (hit.transform == transform || hit.transform.IsChildOf(transform))
+                continue;
+
+            // Hit the player or a child of the player — can see them
+            if (hit.transform == _playerTransform || hit.transform.IsChildOf(_playerTransform))
+                return true;
+
+            // Hit something else — line of sight blocked
+            return false;
         }
 
-        return false;
+        // No hits at all — clear line of sight (open air)
+        return dist <= sightRange && angle <= sightAngle * 0.5f;
     }
 
     // ── Attack ────────────────────────────────────────────────────────────────
@@ -253,13 +275,26 @@ public abstract class EnemyBase : MonoBehaviour
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    /// <summary>Smoothly rotates to face the current movement direction from the NavMeshAgent.</summary>
+    private void FaceMovementDirection()
+    {
+        Vector3 velocity = Agent.velocity;
+        velocity.y = 0f;
+        if (velocity.sqrMagnitude < 0.01f) return;  // not moving, keep current rotation
+        transform.rotation = Quaternion.Slerp(transform.rotation,
+                                               Quaternion.LookRotation(velocity.normalized),
+                                               10f * Time.deltaTime);
+    }
+
+    /// <summary>Smoothly rotates to face a specific world position (used during attack).</summary>
     private void FaceTarget(Vector3 target)
     {
         Vector3 dir = (target - transform.position).normalized;
         dir.y = 0f;
         if (dir == Vector3.zero) return;
         transform.rotation = Quaternion.Slerp(transform.rotation,
-                                               Quaternion.LookRotation(dir), 10f * Time.deltaTime);
+                                               Quaternion.LookRotation(dir),
+                                               10f * Time.deltaTime);
     }
 
     // ── Overridable patrol hooks ──────────────────────────────────────────────
