@@ -7,6 +7,7 @@ public class PlayerAnimator : MonoBehaviour
     private static readonly int SpeedHash    = Animator.StringToHash("Speed");
     private static readonly int JumpHash     = Animator.StringToHash("Jump");
     private static readonly int DeathHash    = Animator.StringToHash("Death");
+    private static readonly int AttackHash   = Animator.StringToHash("Attack");
 
     private Animator _animator;
 
@@ -34,6 +35,11 @@ public class PlayerAnimator : MonoBehaviour
     public void TriggerJump()
     {
         _animator.SetTrigger(JumpHash);
+    }
+
+    public void TriggerAttack()
+    {
+        _animator.SetTrigger(AttackHash);
     }
 
     private void OnPlayerDied(PlayerDiedEvent evt)

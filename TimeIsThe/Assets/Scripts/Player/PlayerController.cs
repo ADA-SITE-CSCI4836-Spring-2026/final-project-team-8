@@ -24,6 +24,7 @@ public class PlayerController : MonoBehaviour
         HandleGroundCheck();
         HandleMovement();
         HandleJump();
+        HandleAttack();
         ApplyGravity();
     }
 
@@ -53,6 +54,12 @@ public class PlayerController : MonoBehaviour
             _velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             _playerAnimator?.TriggerJump();
         }
+    }
+
+    private void HandleAttack()
+    {
+        if (Input.GetButtonDown("Fire1"))
+            _playerAnimator?.TriggerAttack();
     }
 
     private void ApplyGravity()
