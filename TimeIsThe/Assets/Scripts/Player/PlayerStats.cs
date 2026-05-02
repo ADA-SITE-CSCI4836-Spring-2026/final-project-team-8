@@ -30,6 +30,18 @@ public class PlayerStats : MonoBehaviour
     public float Damage         { get; private set; }
     public bool  IsAlive        => TimeRemaining > 0f;
 
+    /// <summary>True during a dash — all incoming damage is ignored.</summary>
+    public bool  IsInvincible   { get; private set; }
+
+    // ── Invincibility API ─────────────────────────────────────────────────────
+
+    /// <summary>Called by PlayerDash to grant invincibility frames.</summary>
+    public void SetInvincible(bool invincible)
+    {
+        IsInvincible = invincible;
+        EventBus.Publish(new PlayerInvincibilityChangedEvent(invincible));
+    }
+
     // ── Age progress [0,1] ───────────────────────────────────────────────────
     private float AgeT => Mathf.InverseLerp(MIN_AGE, MAX_AGE, Age);
 
@@ -53,7 +65,7 @@ public class PlayerStats : MonoBehaviour
     /// <summary>Called by enemies when they hit the player. Amount defaults to HIT_PENALTY.</summary>
     public void TakeHit(float amount = HIT_PENALTY)
     {
-        if (!IsAlive) return;
+        if (!IsAlive || IsInvincible) return;
         DeductTime(amount);
     }
 
@@ -149,3 +161,9 @@ public struct PlayerFinalDeathEvent
 
 // Kept for backward compatibility with any existing subscribers
 public struct PlayerDiedEvent { }
+
+public struct PlayerInvincibilityChangedEvent
+{
+    public bool IsInvincible;
+    public PlayerInvincibilityChangedEvent(bool invincible) => IsInvincible = invincible;
+}
