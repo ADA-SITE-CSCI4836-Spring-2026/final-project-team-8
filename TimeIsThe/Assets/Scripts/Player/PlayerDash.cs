@@ -19,7 +19,7 @@ public class PlayerDash : MonoBehaviour
     [Header("Dash")]
     [SerializeField] private float dashForce      = 18f;   // impulse strength
     [SerializeField] private float dashDuration   = 0.18f; // seconds the dash lasts
-    [SerializeField] private float cooldown       = 1.0f;  // seconds before next dash
+    [SerializeField] private float cooldown       = 3.0f;  // seconds before next dash
     [SerializeField] private string dashButton    = "Sprint"; // default: Left Shift
 
     [Header("Invincibility")]
