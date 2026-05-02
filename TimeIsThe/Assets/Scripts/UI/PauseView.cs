@@ -7,23 +7,37 @@ public class PauseView : MonoBehaviour
     [SerializeField] private Button resumeButton;
     [SerializeField] private Button quitButton;
 
-    private CanvasGroup _canvasGroup;
+    public GameObject pausePanel; // Assign in Inspector
+    // private CanvasGroup _canvasGroup;
 
     private void Awake()
     {
         Debug.Log("[PauseView] Awake called");
 
-        _canvasGroup = GetComponent<CanvasGroup>();
-        if (_canvasGroup == null)
-            _canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        // _canvasGroup = GetComponent<CanvasGroup>();
+        // if (_canvasGroup == null)
+        //     _canvasGroup = gameObject.AddComponent<CanvasGroup>();
 
         resumeButton?.onClick.AddListener(OnResumeClicked);
         quitButton?.onClick.AddListener(OnQuitClicked);
 
-        EventBus.Subscribe<GamePausedEvent>(OnPauseChanged);
+        // EventBus.Subscribe<GamePausedEvent>(OnPauseChanged);
         Debug.Log("[PauseView] Subscribed to GamePausedEvent");
 
         SetVisible(false);
+    }
+
+    void Update() {
+        // For testing: Toggle pause with the P key
+        if (Input.GetKeyDown(KeyCode.P) || Input.GetKeyDown(KeyCode.Escape))
+        {
+            bool isCurrentlyPaused = PauseManager.IsPaused;
+            Debug.Log($"[PauseView] P key pressed. Current pause state: {isCurrentlyPaused}");
+            if (isCurrentlyPaused)
+                PauseManager.Resume();
+            else
+                PauseManager.Pause();
+        }
     }
 
     private void OnDestroy()
@@ -40,9 +54,10 @@ public class PauseView : MonoBehaviour
     private void SetVisible(bool visible)
     {
         Debug.Log($"[PauseView] SetVisible({visible})");
-        _canvasGroup.alpha          = visible ? 1f : 0f;
-        _canvasGroup.interactable   = visible;
-        _canvasGroup.blocksRaycasts = visible;
+        // _canvasGroup.alpha          = visible ? 1f : 0f;
+        // _canvasGroup.interactable   = visible;
+        // _canvasGroup.blocksRaycasts = visible;
+        pausePanel.SetActive(visible);
     }
 
     private void OnResumeClicked() => PauseManager.Resume();
