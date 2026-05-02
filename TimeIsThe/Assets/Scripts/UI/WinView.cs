@@ -4,12 +4,10 @@ using TMPro;
 
 /// <summary>
 /// Attach to the Win canvas GameObject.
-/// Call WinView.Instance.TriggerWin() from wherever your win condition is detected
-/// (e.g. all enemies defeated, objective reached, etc.).
-///
-/// Wire up the PlayAgain and Quit buttons in the Inspector.
+/// The canvas MUST start ACTIVE in the scene so Awake runs.
+/// Call WinView.Instance.TriggerWin() to show it.
 /// </summary>
-public class WinView : UIView
+public class WinView : MonoBehaviour
 {
     public static WinView Instance { get; private set; }
 
@@ -18,18 +16,23 @@ public class WinView : UIView
     [SerializeField] private Button quitButton;
 
     [Header("Optional")]
-    [SerializeField] private TextMeshProUGUI winText;       // e.g. "You survived!"
-    [SerializeField] private TextMeshProUGUI finalAgeText;  // e.g. "Final age: 30"
+    [SerializeField] private TextMeshProUGUI winText;
+    [SerializeField] private TextMeshProUGUI finalAgeText;
+
+    private CanvasGroup _canvasGroup;
 
     private void Awake()
     {
         Instance = this;
 
+        _canvasGroup = GetComponent<CanvasGroup>();
+        if (_canvasGroup == null)
+            _canvasGroup = gameObject.AddComponent<CanvasGroup>();
+
         playAgainButton?.onClick.AddListener(OnPlayAgainClicked);
         quitButton?.onClick.AddListener(OnQuitClicked);
 
-        // Start hidden
-        gameObject.SetActive(false);
+        SetVisible(false);
     }
 
     private void OnDestroy()
@@ -39,7 +42,6 @@ public class WinView : UIView
         quitButton?.onClick.RemoveListener(OnQuitClicked);
     }
 
-    /// <summary>Call this when the player wins (all enemies dead, objective complete, etc.).</summary>
     public void TriggerWin()
     {
         PlayerStats stats = FindObjectOfType<PlayerStats>();
@@ -50,13 +52,18 @@ public class WinView : UIView
         if (finalAgeText != null && stats != null)
             finalAgeText.text = $"Final age: {stats.Age}";
 
-        // Pause time so the scene freezes on the win screen
-        Time.timeScale = 0f;
+        Time.timeScale       = 0f;
+        Cursor.lockState     = CursorLockMode.None;
+        Cursor.visible       = true;
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible   = true;
+        SetVisible(true);
+    }
 
-        Show();
+    private void SetVisible(bool visible)
+    {
+        _canvasGroup.alpha          = visible ? 1f : 0f;
+        _canvasGroup.interactable   = visible;
+        _canvasGroup.blocksRaycasts = visible;
     }
 
     private void OnPlayAgainClicked()

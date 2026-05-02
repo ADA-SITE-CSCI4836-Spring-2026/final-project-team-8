@@ -3,27 +3,31 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Attach to the Pause Menu canvas GameObject.
-/// Listens to GamePausedEvent and shows/hides itself automatically.
-///
-/// Wire up the Resume and Quit buttons in the Inspector.
+/// The canvas MUST start ACTIVE in the scene so Awake runs and subscribes.
+/// The script hides itself immediately in Awake.
 /// </summary>
-public class PauseView : UIView
+public class PauseView : MonoBehaviour
 {
     [Header("Buttons")]
     [SerializeField] private Button resumeButton;
     [SerializeField] private Button quitButton;
 
+    private CanvasGroup _canvasGroup;
+
     private void Awake()
     {
+        // Use CanvasGroup alpha to hide instead of SetActive,
+        // so this GameObject stays active and keeps receiving events
+        _canvasGroup = GetComponent<CanvasGroup>();
+        if (_canvasGroup == null)
+            _canvasGroup = gameObject.AddComponent<CanvasGroup>();
+
         resumeButton?.onClick.AddListener(OnResumeClicked);
         quitButton?.onClick.AddListener(OnQuitClicked);
 
-        // Subscribe here (not OnEnable) because the canvas starts inactive
-        // and OnEnable won't fire until the first Show() call
         EventBus.Subscribe<GamePausedEvent>(OnPauseChanged);
 
-        // Start hidden
-        gameObject.SetActive(false);
+        SetVisible(false);
     }
 
     private void OnDestroy()
@@ -35,14 +39,17 @@ public class PauseView : UIView
 
     private void OnPauseChanged(GamePausedEvent evt)
     {
-        if (evt.IsPaused) Show();
-        else              Hide();
+        SetVisible(evt.IsPaused);
     }
 
-    private void OnResumeClicked()
+    private void SetVisible(bool visible)
     {
-        PauseManager.Resume();
+        _canvasGroup.alpha          = visible ? 1f : 0f;
+        _canvasGroup.interactable   = visible;
+        _canvasGroup.blocksRaycasts = visible;
     }
+
+    private void OnResumeClicked() => PauseManager.Resume();
 
     private void OnQuitClicked()
     {
