@@ -1,4 +1,7 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class ObstacleSpawner : MonoBehaviour
 {
@@ -27,6 +30,39 @@ public class ObstacleSpawner : MonoBehaviour
     public float minSpacingRocks = 1.5f;
     public float minSpacingTrees = 3.0f;
 
+    // ── Enemy Spawning ────────────────────────────────────────────────────────
+
+    [Header("Enemy Prefabs")]
+    public GameObject skeletonPrefab;
+    public GameObject golemPrefab;
+
+    [Header("Enemy Counts")]
+    public int skeletonCount = 5;
+    public int golemCount    = 2;
+
+    [Header("Enemy Spacing")]
+    public float minSpacingEnemies   = 8f;   // enemies need more room than rocks
+    public float minSpacingFromPlayer = 15f; // don't spawn enemies right on top of the player
+
+    [Header("Waypoints")]
+    [Tooltip("How many patrol waypoints to generate per enemy")]
+    public int waypointsPerEnemy = 3;
+    [Tooltip("Radius around the enemy spawn point to place waypoints")]
+    public float waypointRadius  = 8f;
+
+    // ── NavMesh ───────────────────────────────────────────────────────────────
+
+    [Header("NavMesh")]
+    [Tooltip("Assign the NavMeshSurface component that covers the canyon terrain")]
+    public NavMeshSurface navMeshSurface;
+
+    // ── Internal ──────────────────────────────────────────────────────────────
+
+    private Transform _playerTransform;
+    private Bounds    _bounds;
+
+    // ─────────────────────────────────────────────────────────────────────────
+
     void Start()
     {
         if (canyonMesh == null)
@@ -42,9 +78,9 @@ public class ObstacleSpawner : MonoBehaviour
             return;
         }
 
-        Bounds bounds = allRenderers[0].bounds;
+        _bounds = allRenderers[0].bounds;
         foreach (MeshRenderer r in allRenderers)
-            bounds.Encapsulate(r.bounds);
+            _bounds.Encapsulate(r.bounds);
 
         MeshCollider mc = canyonMesh.GetComponentInChildren<MeshCollider>();
         if (mc == null)
@@ -53,74 +89,214 @@ public class ObstacleSpawner : MonoBehaviour
             return;
         }
 
+        // Cache player position so enemies don't spawn too close
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+            _playerTransform = player.transform;
+
+        // 1 — Spawn obstacles first
         Debug.Log("--- Spawning Rocks ---");
-        SpawnObjects(rockPrefabs, rockCount, bounds, rockMinScale, rockMaxScale, minSpacingRocks);
+        SpawnObjects(rockPrefabs, rockCount, rockMinScale, rockMaxScale, minSpacingRocks);
 
         Debug.Log("--- Spawning Trees ---");
-        SpawnObjects(treePrefabs, treeCount, bounds, treeMinScale, treeMaxScale, minSpacingTrees);
+        SpawnObjects(treePrefabs, treeCount, treeMinScale, treeMaxScale, minSpacingTrees);
+
+        // 2 — Bake NavMesh so enemies can path around the freshly spawned obstacles
+        if (navMeshSurface != null)
+        {
+            Debug.Log("--- Baking NavMesh ---");
+            navMeshSurface.BuildNavMesh();
+            Debug.Log("NavMesh baked.");
+        }
+        else
+        {
+            Debug.LogWarning("[ObstacleSpawner] NavMeshSurface not assigned — skipping runtime bake. Enemies may not path correctly.");
+        }
+
+        // 3 — Spawn enemies after NavMesh is ready
+        Debug.Log("--- Spawning Enemies ---");
+        SpawnEnemies(skeletonPrefab, skeletonCount, "Skeletons");
+        SpawnEnemies(golemPrefab,    golemCount,    "Golems");
     }
 
-    void SpawnObjects(GameObject[] prefabs, int count, Bounds bounds, float minScale, float maxScale, float minSpacing)
+    // ── Obstacle spawning (unchanged logic, refactored to use _bounds) ────────
+
+    void SpawnObjects(GameObject[] prefabs, int count, float minScale, float maxScale, float minSpacing)
     {
-        if (prefabs.Length == 0)
+        if (prefabs == null || prefabs.Length == 0)
         {
             Debug.LogWarning("Prefab array is empty, skipping.");
             return;
         }
 
-        if (count == 0)
-        {
-            Debug.LogWarning("Count is 0, skipping.");
-            return;
-        }
+        if (count == 0) return;
 
-        int spawned = 0;
-        int attempts = 0;
+        int spawned     = 0;
+        int attempts    = 0;
         int maxAttempts = count * 15;
 
         while (spawned < count && attempts < maxAttempts)
         {
             attempts++;
 
-            float randomX = Random.Range(bounds.min.x, bounds.max.x);
-            float randomZ = Random.Range(bounds.min.z, bounds.max.z);
-            Vector3 rayOrigin = new Vector3(randomX, bounds.max.y + raycastHeight, randomZ);
+            Vector3 candidate = GetRandomSurfacePoint();
+            if (candidate == Vector3.zero) continue;
 
-            if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, Mathf.Infinity, terrainLayer))
-            {
-                // Check spacing — skip if another object is too close
-                bool tooClose = false;
-                Collider[] nearby = Physics.OverlapSphere(hit.point, minSpacing);
-                foreach (Collider c in nearby)
-                {
-                    if (c.gameObject != canyonMesh && c.gameObject != hit.collider.gameObject)
-                    {
-                        tooClose = true;
-                        break;
-                    }
-                }
+            if (IsTooClose(candidate, minSpacing, null)) continue;
 
-                if (tooClose) continue;
+            GameObject prefab = prefabs[Random.Range(0, prefabs.Length)];
+            GameObject obj    = Instantiate(prefab, candidate, Quaternion.identity);
+            obj.transform.rotation   = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
+            obj.transform.localScale *= Random.Range(minScale, maxScale);
+            obj.transform.parent      = this.transform;
 
-                GameObject prefab = prefabs[Random.Range(0, prefabs.Length)];
-                GameObject obj = Instantiate(prefab, hit.point, Quaternion.identity);
-
-                // Random Y rotation
-                obj.transform.rotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
-
-                // Random scale
-                float scale = Random.Range(minScale, maxScale);
-                obj.transform.localScale *= scale;
-
-                // Keep hierarchy tidy
-                obj.transform.parent = this.transform;
-
-                spawned++;
-            }
+            spawned++;
         }
 
         Debug.Log($"Spawned {spawned}/{count} objects after {attempts} attempts");
     }
+
+    // ── Enemy spawning ────────────────────────────────────────────────────────
+
+    void SpawnEnemies(GameObject prefab, int count, string label)
+    {
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[ObstacleSpawner] {label} prefab not assigned — skipping.");
+            return;
+        }
+
+        if (count == 0) return;
+
+        // Parent container to keep Hierarchy tidy
+        GameObject container = new GameObject($"Enemies_{label}");
+        container.transform.parent = this.transform;
+
+        int spawned     = 0;
+        int attempts    = 0;
+        int maxAttempts = count * 20;
+
+        while (spawned < count && attempts < maxAttempts)
+        {
+            attempts++;
+
+            Vector3 spawnPos = GetRandomNavMeshPoint();
+            if (spawnPos == Vector3.zero) continue;
+
+            // Keep away from other enemies
+            if (IsTooClose(spawnPos, minSpacingEnemies, null)) continue;
+
+            // Keep away from the player start position
+            if (_playerTransform != null &&
+                Vector3.Distance(spawnPos, _playerTransform.position) < minSpacingFromPlayer)
+                continue;
+
+            // Spawn enemy
+            GameObject enemy = Instantiate(prefab, spawnPos, Quaternion.Euler(0, Random.Range(0f, 360f), 0));
+            enemy.transform.parent = container.transform;
+            enemy.name = $"{label}_{spawned}";
+
+            // Generate patrol waypoints around the spawn point
+            Transform[] waypoints = GenerateWaypoints(spawnPos, waypointsPerEnemy, waypointRadius, enemy.transform);
+
+            // Wire waypoints into the EnemyPatrol component
+            EnemyPatrol patrol = enemy.GetComponent<EnemyPatrol>();
+            if (patrol != null)
+                patrol.SetWaypoints(waypoints);
+            else
+                Debug.LogWarning($"[ObstacleSpawner] {enemy.name} has no EnemyPatrol component.");
+
+            spawned++;
+        }
+
+        Debug.Log($"[ObstacleSpawner] Spawned {spawned}/{count} {label} after {attempts} attempts");
+    }
+
+    // ── Waypoint generation ───────────────────────────────────────────────────
+
+    Transform[] GenerateWaypoints(Vector3 center, int count, float radius, Transform parent)
+    {
+        GameObject waypointContainer = new GameObject("Waypoints");
+        waypointContainer.transform.parent = parent;
+
+        List<Transform> waypoints = new List<Transform>();
+
+        int attempts    = 0;
+        int maxAttempts = count * 10;
+
+        while (waypoints.Count < count && attempts < maxAttempts)
+        {
+            attempts++;
+
+            // Distribute waypoints evenly around the circle with some randomness
+            float angle  = (waypoints.Count / (float)count) * 360f + Random.Range(-30f, 30f);
+            float dist   = Random.Range(radius * 0.4f, radius);
+            Vector3 offset = new Vector3(
+                Mathf.Sin(angle * Mathf.Deg2Rad) * dist,
+                0f,
+                Mathf.Cos(angle * Mathf.Deg2Rad) * dist
+            );
+
+            Vector3 candidate = center + offset;
+
+            // Snap to NavMesh
+            if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, radius, NavMesh.AllAreas))
+            {
+                GameObject wp = new GameObject($"WP_{waypoints.Count}");
+                wp.transform.position = hit.position;
+                wp.transform.parent   = waypointContainer.transform;
+                waypoints.Add(wp.transform);
+            }
+        }
+
+        return waypoints.ToArray();
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// <summary>Raycasts from above a random XZ position to find a surface point.</summary>
+    Vector3 GetRandomSurfacePoint()
+    {
+        float   x         = Random.Range(_bounds.min.x, _bounds.max.x);
+        float   z         = Random.Range(_bounds.min.z, _bounds.max.z);
+        Vector3 rayOrigin = new Vector3(x, _bounds.max.y + raycastHeight, z);
+
+        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, Mathf.Infinity, terrainLayer))
+            return hit.point;
+
+        return Vector3.zero;
+    }
+
+    /// <summary>Finds a random point on the baked NavMesh within the canyon bounds.</summary>
+    Vector3 GetRandomNavMeshPoint()
+    {
+        // Try random surface points and snap to NavMesh
+        for (int i = 0; i < 10; i++)
+        {
+            Vector3 surface = GetRandomSurfacePoint();
+            if (surface == Vector3.zero) continue;
+
+            if (NavMesh.SamplePosition(surface, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+                return hit.position;
+        }
+
+        return Vector3.zero;
+    }
+
+    /// <summary>Returns true if any existing collider is within minSpacing of point (ignoring ignoreObj).</summary>
+    bool IsTooClose(Vector3 point, float minSpacing, GameObject ignoreObj)
+    {
+        Collider[] nearby = Physics.OverlapSphere(point, minSpacing);
+        foreach (Collider c in nearby)
+        {
+            if (ignoreObj != null && c.gameObject == ignoreObj) continue;
+            if (c.gameObject == canyonMesh)                     continue;
+            return true;
+        }
+        return false;
+    }
+
+    // ── Gizmos ────────────────────────────────────────────────────────────────
 
     void OnDrawGizmos()
     {
@@ -129,20 +305,17 @@ public class ObstacleSpawner : MonoBehaviour
         MeshRenderer[] allRenderers = canyonMesh.GetComponentsInChildren<MeshRenderer>();
         if (allRenderers.Length == 0) return;
 
-        Bounds bounds = allRenderers[0].bounds;
+        Bounds b = allRenderers[0].bounds;
         foreach (MeshRenderer r in allRenderers)
-            bounds.Encapsulate(r.bounds);
+            b.Encapsulate(r.bounds);
 
-        // Yellow box showing spawn area
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireCube(bounds.center, bounds.size);
+        Gizmos.DrawWireCube(b.center, b.size);
 
-        // Red sphere showing raycast origin height
         Gizmos.color = Color.red;
-        Gizmos.DrawSphere(new Vector3(bounds.center.x, bounds.max.y + raycastHeight, bounds.center.z), 1f);
+        Gizmos.DrawSphere(new Vector3(b.center.x, b.max.y + raycastHeight, b.center.z), 1f);
 
-        // Green sphere showing canyon center
         Gizmos.color = Color.green;
-        Gizmos.DrawSphere(bounds.center, 1f);
+        Gizmos.DrawSphere(b.center, 1f);
     }
 }

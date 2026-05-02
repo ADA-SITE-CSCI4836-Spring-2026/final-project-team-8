@@ -36,7 +36,7 @@ public abstract class EnemyBase : MonoBehaviour
 
     // ── State ────────────────────────────────────────────────────────────────
     public enum AIState { Patrol, Chase, Attack }
-    public AIState State { get; private set; } = AIState.Patrol;
+    public AIState State { get; protected set; } = AIState.Patrol;
 
     public float CurrentHealth { get; private set; }
     public bool  IsAlive       => CurrentHealth > 0f;

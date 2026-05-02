@@ -14,6 +14,16 @@ public class EnemyPatrol : EnemyBase
 
     private int _waypointIndex;
 
+    /// <summary>Called by ObstacleSpawner to assign runtime-generated waypoints.</summary>
+    public void SetWaypoints(Transform[] generatedWaypoints)
+    {
+        waypoints      = generatedWaypoints;
+        _waypointIndex = 0;
+        // Start heading to first waypoint immediately if already in patrol state
+        if (State == AIState.Patrol)
+            SetNextWaypoint();
+    }
+
     protected override void OnPatrolEnter()
     {
         SetNextWaypoint();
