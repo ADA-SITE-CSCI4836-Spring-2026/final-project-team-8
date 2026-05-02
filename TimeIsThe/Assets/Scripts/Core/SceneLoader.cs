@@ -18,6 +18,11 @@ public class SceneLoader : Singleton<SceneLoader>
             StartCoroutine(LoadSceneAsync(sceneIndex));
     }
 
+    public void ReloadCurrentScene()
+    {
+        LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+    }
+
     private IEnumerator LoadSceneAsync(string sceneName)
     {
         IsLoading = true;

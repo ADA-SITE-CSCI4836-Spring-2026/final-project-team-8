@@ -4,28 +4,35 @@ using UnityEngine.UI;
 
 public class HUDView : UIView
 {
-    [Header("Health")]
-    [SerializeField] private Slider healthBar;
-    [SerializeField] private TextMeshProUGUI healthText;
+    [Header("Time (HP)")]
+    [SerializeField] private Slider timeBar;
+    [SerializeField] private TextMeshProUGUI timeText;   // e.g. "87s"
+
+    [Header("Age")]
+    [SerializeField] private TextMeshProUGUI ageText;    // e.g. "Age 23"
 
     private void OnEnable()
     {
-        EventBus.Subscribe<PlayerHealthChangedEvent>(OnHealthChanged);
+        EventBus.Subscribe<PlayerTimeChangedEvent>(OnTimeChanged);
     }
 
     private void OnDisable()
     {
-        EventBus.Unsubscribe<PlayerHealthChangedEvent>(OnHealthChanged);
+        EventBus.Unsubscribe<PlayerTimeChangedEvent>(OnTimeChanged);
     }
 
-    private void OnHealthChanged(PlayerHealthChangedEvent evt)
+    private void OnTimeChanged(PlayerTimeChangedEvent evt)
     {
-        float ratio = evt.Max > 0f ? evt.Current / evt.Max : 0f;
+        // Time bar
+        if (timeBar != null)
+            timeBar.value = evt.MaxTime > 0f ? evt.TimeRemaining / evt.MaxTime : 0f;
 
-        if (healthBar != null)
-            healthBar.value = ratio;
+        // Time label — show whole seconds
+        if (timeText != null)
+            timeText.text = $"{Mathf.CeilToInt(evt.TimeRemaining)}s";
 
-        if (healthText != null)
-            healthText.text = $"{Mathf.CeilToInt(evt.Current)} / {Mathf.CeilToInt(evt.Max)}";
+        // Age label
+        if (ageText != null)
+            ageText.text = $"Age {evt.Age}";
     }
 }
