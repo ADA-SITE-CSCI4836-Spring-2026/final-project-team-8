@@ -1,48 +1,34 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Pause menu view.
+/// PauseManager holds a direct reference to this and calls Show()/Hide() directly.
+/// This avoids any EventBus subscription timing issues with inactive GameObjects.
+/// </summary>
 public class PauseView : MonoBehaviour
 {
     [Header("Buttons")]
     [SerializeField] private Button resumeButton;
     [SerializeField] private Button quitButton;
 
-    private CanvasGroup _canvasGroup;
-
     private void Awake()
     {
-        Debug.Log("[PauseView] Awake called");
-
-        _canvasGroup = GetComponent<CanvasGroup>();
-        if (_canvasGroup == null)
-            _canvasGroup = gameObject.AddComponent<CanvasGroup>();
-
         resumeButton?.onClick.AddListener(OnResumeClicked);
         quitButton?.onClick.AddListener(OnQuitClicked);
 
-        EventBus.Subscribe<GamePausedEvent>(OnPauseChanged);
-        Debug.Log("[PauseView] Subscribed to GamePausedEvent");
-
-        SetVisible(false);
+        // Hide on start regardless of active state in scene
+        gameObject.SetActive(false);
     }
 
-    private void OnDestroy()
+    public void Show()
     {
-        EventBus.Unsubscribe<GamePausedEvent>(OnPauseChanged);
+        gameObject.SetActive(true);
     }
 
-    private void OnPauseChanged(GamePausedEvent evt)
+    public void Hide()
     {
-        Debug.Log($"[PauseView] OnPauseChanged received. IsPaused={evt.IsPaused}");
-        SetVisible(evt.IsPaused);
-    }
-
-    private void SetVisible(bool visible)
-    {
-        Debug.Log($"[PauseView] SetVisible({visible})");
-        _canvasGroup.alpha          = visible ? 1f : 0f;
-        _canvasGroup.interactable   = visible;
-        _canvasGroup.blocksRaycasts = visible;
+        gameObject.SetActive(false);
     }
 
     private void OnResumeClicked() => PauseManager.Resume();

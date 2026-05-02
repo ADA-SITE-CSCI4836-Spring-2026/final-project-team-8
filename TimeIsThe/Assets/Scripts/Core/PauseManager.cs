@@ -1,25 +1,30 @@
 using UnityEngine;
 
 /// <summary>
-/// Handles pause (Escape / P) and cursor lock.
-///
-/// - Locks and hides the cursor on start so mouse movement drives the camera
-///   orbit instead of moving the OS cursor around the screen.
-/// - Escape or P toggles pause: Time.timeScale = 0, cursor unlocked.
-/// - Resumes: Time.timeScale = 1, cursor re-locked.
-///
-/// Add this to any persistent GameObject in the scene (e.g. GameManager's
-/// GameObject, or a dedicated PauseManager object).
+/// Handles pause input and directly shows/hides the PauseView.
+/// Assign the PauseView reference in the Inspector.
 /// </summary>
 public class PauseManager : MonoBehaviour
 {
+    [Header("Pause Menu")]
+    [SerializeField] private PauseView pauseView;
+
     public static bool IsPaused { get; private set; }
+
+    // Static reference so other scripts can call PauseManager.Instance.Pause() if needed
+    public static PauseManager Instance { get; private set; }
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     private void Start()
     {
-        // Lock cursor immediately so the mouse orbits the camera
-        // instead of moving freely over the screen
         LockCursor();
+
+        // Ensure pause menu starts hidden
+        pauseView?.Hide();
     }
 
     private void Update()
@@ -28,27 +33,39 @@ public class PauseManager : MonoBehaviour
             TogglePause();
     }
 
-    public static void TogglePause()
+    public void TogglePause()
     {
         if (IsPaused) Resume();
         else          Pause();
     }
 
-    public static void Pause()
+    public void Pause()
     {
-        IsPaused          = true;
-        Time.timeScale    = 0f;
+        IsPaused       = true;
+        Time.timeScale = 0f;
         UnlockCursor();
-        Debug.Log("[PauseManager] Publishing GamePausedEvent(true)");
+
+        pauseView?.Show();
+        Debug.Log("[PauseManager] Paused — showing pause menu.");
+
         EventBus.Publish(new GamePausedEvent(true));
     }
 
     public static void Resume()
     {
-        IsPaused          = false;
-        Time.timeScale    = 1f;
+        if (Instance == null) return;
+        Instance.ResumeInternal();
+    }
+
+    private void ResumeInternal()
+    {
+        IsPaused       = false;
+        Time.timeScale = 1f;
         LockCursor();
-        Debug.Log("[PauseManager] Publishing GamePausedEvent(false)");
+
+        pauseView?.Hide();
+        Debug.Log("[PauseManager] Resumed — hiding pause menu.");
+
         EventBus.Publish(new GamePausedEvent(false));
     }
 
@@ -64,12 +81,11 @@ public class PauseManager : MonoBehaviour
         Cursor.visible   = true;
     }
 
-    // Ensure timeScale and cursor are restored if the object is destroyed
-    // (e.g. exiting Play mode while paused)
     private void OnDestroy()
     {
-        Time.timeScale   = 1f;
+        Time.timeScale = 1f;
         UnlockCursor();
+        Instance = null;
     }
 }
 
