@@ -14,14 +14,15 @@ public class GolemEnemy : EnemyPatrol
 {
     protected override void ApplyStats()
     {
-        maxHealth      = 200f;
-        attackDamage   = 25f;
-        attackRange    = 2.5f;
-        attackCooldown = 2.5f;   // slow but devastating
-        sightRange     = 14f;
-        sightAngle     = 120f;   // wide peripheral vision
-        loseTargetRange = 25f;   // persistent — doesn't give up easily
-        patrolSpeed    = 0.8f;
-        chaseSpeed     = 1f;
+        maxHealth       = 200f;
+        attackDamage    = 25f;
+        attackRange     = 2.5f;
+        attackCooldown  = 2.5f;
+        sightRange      = 14f;
+        sightAngle      = 120f;
+        loseTargetRange = 25f;
+        patrolSpeed     = 0.8f;
+        chaseSpeed      = 1f;
+        timeReward      = 30f;  // golem gives 30s — high reward, hard enemy
     }
 }

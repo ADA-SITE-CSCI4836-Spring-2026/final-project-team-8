@@ -30,6 +30,9 @@ public abstract class EnemyBase : MonoBehaviour
     [SerializeField] protected float attackDamage   = 10f;
     [SerializeField] protected float attackCooldown = 1.5f;
 
+    [Header("Kill Reward")]
+    [SerializeField] protected float timeReward = 10f;  // seconds restored to player on kill
+
     [Header("Movement")]
     [SerializeField] protected float patrolSpeed = 2f;
     [SerializeField] protected float chaseSpeed  = 4f;
@@ -264,9 +267,16 @@ public abstract class EnemyBase : MonoBehaviour
     protected virtual void OnDeath()
     {
         Agent.isStopped = true;
-        Agent.enabled   = false;        // disable agent so it stops influencing navmesh
+        Agent.enabled   = false;
         Anim?.SetTrigger(DeadHash);
         EventBus.Publish(new EnemyDiedEvent(gameObject));
+
+        // Restore time to player
+        if (_playerStats != null && timeReward > 0f)
+        {
+            _playerStats.AddTime(timeReward);
+            Debug.Log($"[{name}] Killed — restored {timeReward}s to player. Remaining: {_playerStats.TimeRemaining:F1}s");
+        }
 
         // Disable collider immediately so player can't keep hitting it
         GetComponent<Collider>().enabled = false;
