@@ -50,11 +50,11 @@ public class PlayerStats : MonoBehaviour
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    /// <summary>Called by enemies when they hit the player.</summary>
-    public void TakeHit()
+    /// <summary>Called by enemies when they hit the player. Amount defaults to HIT_PENALTY.</summary>
+    public void TakeHit(float amount = HIT_PENALTY)
     {
         if (!IsAlive) return;
-        DeductTime(HIT_PENALTY);
+        DeductTime(amount);
     }
 
     /// <summary>Add time back (power-up, etc.).</summary>
