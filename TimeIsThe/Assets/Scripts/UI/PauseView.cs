@@ -11,6 +11,7 @@ public class PauseView : MonoBehaviour
     [Header("Buttons")]
     [SerializeField] private Button resumeButton;
     [SerializeField] private Button quitButton;
+    public GameObject gameObject;
 
     private void Awake()
     {
