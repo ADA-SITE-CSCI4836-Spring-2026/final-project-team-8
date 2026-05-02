@@ -57,20 +57,13 @@ public class GameManager : Singleton<GameManager>
         SceneLoader.Instance.ReloadCurrentScene();
     }
 
-    /// <summary>Player reached age 60 — game over, reload scene from scratch.</summary>
+    /// <summary>Player reached age 60 — game over. LoseView handles the UI and restart.</summary>
     private void OnPlayerFinalDeath(PlayerFinalDeathEvent evt)
     {
         Debug.Log($"[GameManager] Game Over — player reached age {evt.FinalAge}.");
         SetState(GameState.GameOver);
-
-        // Small delay so any game over UI can show before reload
-        StartCoroutine(ReloadAfterDelay(2.5f));
-    }
-
-    private System.Collections.IEnumerator ReloadAfterDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        SceneLoader.Instance.ReloadCurrentScene();
+        // LoseView listens to PlayerFinalDeathEvent directly and shows itself.
+        // No auto-reload here — the player clicks Restart on the lose screen.
     }
 }
 
