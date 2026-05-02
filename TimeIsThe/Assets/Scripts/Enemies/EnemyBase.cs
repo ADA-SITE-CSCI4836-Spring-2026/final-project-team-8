@@ -77,12 +77,15 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected virtual void Start()
     {
-        // Find player at start — works even if player is DontDestroyOnLoad
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
-            _playerStats     = player.GetComponent<PlayerStats>();
+            // Search on the tagged object and all its children
+            _playerStats     = player.GetComponentInChildren<PlayerStats>();
             _playerTransform = player.transform;
+
+            if (_playerStats == null)
+                Debug.LogWarning($"[{name}] Found 'Player' tag but no PlayerStats component on it or its children.");
         }
         else
         {
@@ -232,11 +235,17 @@ public abstract class EnemyBase : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
 
+        if (_playerStats == null)
+        {
+            Debug.LogWarning($"[{name}] Cannot apply damage — PlayerStats reference is null.");
+            yield break;
+        }
+
         // Re-check range — player may have moved away during the animation
-        if (IsAlive && _playerStats != null &&
-            Vector3.Distance(transform.position, _playerTransform.position) <= attackRange * 1.5f)
+        if (IsAlive && Vector3.Distance(transform.position, _playerTransform.position) <= attackRange * 1.5f)
         {
             _playerStats.TakeHit(attackDamage);
+            Debug.Log($"[{name}] Hit player for {attackDamage}s. Player time remaining: {_playerStats.TimeRemaining:F1}s");
         }
     }
 
@@ -255,13 +264,85 @@ public abstract class EnemyBase : MonoBehaviour
     protected virtual void OnDeath()
     {
         Agent.isStopped = true;
+        Agent.enabled   = false;        // disable agent so it stops influencing navmesh
         Anim?.SetTrigger(DeadHash);
         EventBus.Publish(new EnemyDiedEvent(gameObject));
 
-        // Disable collider so player can't keep hitting it
+        // Disable collider immediately so player can't keep hitting it
         GetComponent<Collider>().enabled = false;
 
-        Destroy(gameObject, 3f);
+        // Fade out then destroy
+        StartCoroutine(FadeOutAndDestroy(2.5f, 1.0f));
+    }
+
+    /// <summary>
+    /// Waits <paramref name="delay"/> seconds (letting death animation play),
+    /// then fades all Renderers out over <paramref name="fadeDuration"/> seconds,
+    /// then destroys the GameObject.
+    /// </summary>
+    private System.Collections.IEnumerator FadeOutAndDestroy(float delay, float fadeDuration)
+    {
+        yield return new WaitForSeconds(delay);
+
+        // Collect all renderers and switch their materials to fade mode
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+
+        // Cache original colors and switch to transparent rendering mode
+        var originalColors = new UnityEngine.Color[renderers.Length];
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i].material.HasProperty("_Color"))
+            {
+                originalColors[i] = renderers[i].material.color;
+                SetMaterialFade(renderers[i].material);
+            }
+        }
+
+        // Fade alpha from 1 → 0
+        float elapsed = 0f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
+
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] != null && renderers[i].material.HasProperty("_Color"))
+                {
+                    Color c = originalColors[i];
+                    c.a = alpha;
+                    renderers[i].material.color = c;
+                }
+            }
+            yield return null;
+        }
+
+        Destroy(gameObject);
+    }
+
+    /// <summary>Switches a Standard or URP/Lit material to transparent rendering mode at runtime.</summary>
+    private static void SetMaterialFade(Material mat)
+    {
+        // URP Lit shader
+        if (mat.HasProperty("_Surface"))
+        {
+            mat.SetFloat("_Surface", 1f);           // 0 = Opaque, 1 = Transparent
+            mat.SetFloat("_Blend",   0f);           // Alpha blend
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            mat.renderQueue = 3000;
+        }
+        // Standard shader fallback
+        else if (mat.HasProperty("_Mode"))
+        {
+            mat.SetFloat("_Mode", 2f);              // Fade mode
+            mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetInt("_ZWrite", 0);
+            mat.DisableKeyword("_ALPHATEST_ON");
+            mat.EnableKeyword("_ALPHABLEND_ON");
+            mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            mat.renderQueue = 3000;
+        }
     }
 
     // ── Animator ──────────────────────────────────────────────────────────────
