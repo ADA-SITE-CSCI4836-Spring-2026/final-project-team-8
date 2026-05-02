@@ -56,6 +56,9 @@ public class ThirdPersonOrbitCamBasic : MonoBehaviour
 
 	void Update()
 	{
+		// Don't orbit camera while paused
+		if (PauseManager.IsPaused) return;
+
 		// Get mouse movement to orbit the camera.
 		// Mouse:
 		angleH += Mathf.Clamp(Input.GetAxis("Mouse X"), -1, 1) * horizontalAimingSpeed;
