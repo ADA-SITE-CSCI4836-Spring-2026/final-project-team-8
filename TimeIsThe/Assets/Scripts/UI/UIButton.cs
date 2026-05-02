@@ -74,6 +74,9 @@ public class UIButton : MonoBehaviour,
                 fill = dangerColor;
                 break;
             case ButtonVariant.Secondary:
+                fill = secondaryColor;
+                textColor = new Color(0f, 0f, 0f, 1f);
+                break;
             case ButtonVariant.Icon:
                 fill = Color.clear;
                 break;
@@ -83,7 +86,7 @@ public class UIButton : MonoBehaviour,
         }
 
         // Standard boolean logic
-        bool showBorder = (variant == ButtonVariant.Secondary || variant == ButtonVariant.Icon);
+        bool showBorder = /* (variant == ButtonVariant.Secondary || variant == ButtonVariant.Icon) */ false;
 
         if (background) background.color = fill;
         if (border) { border.enabled = showBorder; border.color = primaryColor; }
