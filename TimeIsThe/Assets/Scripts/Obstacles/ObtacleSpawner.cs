@@ -271,27 +271,35 @@ public class ObstacleSpawner : MonoBehaviour
     /// <summary>Finds a random point on the baked NavMesh within the canyon bounds.</summary>
     Vector3 GetRandomNavMeshPoint()
     {
-        // Try random surface points and snap to NavMesh
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 20; i++)
         {
             Vector3 surface = GetRandomSurfacePoint();
             if (surface == Vector3.zero) continue;
 
-            if (NavMesh.SamplePosition(surface, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+            // Use a generous sample radius for uneven canyon terrain
+            if (NavMesh.SamplePosition(surface, out NavMeshHit hit, 8f, NavMesh.AllAreas))
                 return hit.position;
         }
 
+        Debug.LogWarning("[ObstacleSpawner] GetRandomNavMeshPoint failed — is the NavMesh baked?");
         return Vector3.zero;
     }
 
-    /// <summary>Returns true if any existing collider is within minSpacing of point (ignoring ignoreObj).</summary>
+    /// <summary>Returns true if any existing collider is within minSpacing of point (ignoring terrain).</summary>
     bool IsTooClose(Vector3 point, float minSpacing, GameObject ignoreObj)
     {
         Collider[] nearby = Physics.OverlapSphere(point, minSpacing);
         foreach (Collider c in nearby)
         {
             if (ignoreObj != null && c.gameObject == ignoreObj) continue;
+
+            // Ignore the canyon terrain itself — it covers the whole area
             if (c.gameObject == canyonMesh)                     continue;
+            if (c.transform.IsChildOf(canyonMesh.transform))    continue;
+
+            // Ignore trigger colliders (detection zones etc.)
+            if (c.isTrigger)                                     continue;
+
             return true;
         }
         return false;
