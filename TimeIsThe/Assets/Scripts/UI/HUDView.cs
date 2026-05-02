@@ -59,6 +59,10 @@ public class HUDView : MonoBehaviour
             timeText.text = $"{Mathf.CeilToInt(remaining)}s";
 
         if (ageText != null)
-            ageText.text = $"Age {age}";
+        {
+            // Show age and how many deaths remain before game over
+            int deathsLeft = (PlayerStats.MAX_AGE - age) / PlayerStats.AGE_PER_DEATH;
+            ageText.text = $"Age {age}  ({deathsLeft} {(deathsLeft == 1 ? "life" : "lives")} left)";
+        }
     }
 }

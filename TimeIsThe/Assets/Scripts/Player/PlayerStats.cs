@@ -11,8 +11,9 @@ using UnityEngine;
 public class PlayerStats : MonoBehaviour
 {
     // ── Age constants ────────────────────────────────────────────────────────
-    public const int MIN_AGE = 20;
-    public const int MAX_AGE = 60;
+    public const int MIN_AGE    = 20;
+    public const int MAX_AGE    = 60;
+    public const int AGE_PER_DEATH = 10;  // age increase on each death
 
     // ── Time-as-health constants ─────────────────────────────────────────────
     public const float START_TIME  = 120f;   // seconds at MIN_AGE
@@ -49,7 +50,10 @@ public class PlayerStats : MonoBehaviour
 
     private void Awake()
     {
-        Age = MIN_AGE;
+        // Load persisted age so it survives scene reloads
+        // PlayerPrefs key "PlayerAge" is written on death and cleared on game over
+        Age = PlayerPrefs.GetInt("PlayerAge", MIN_AGE);
+        Age = Mathf.Clamp(Age, MIN_AGE, MAX_AGE);
         ApplyAgeStats();
     }
 
@@ -95,13 +99,21 @@ public class PlayerStats : MonoBehaviour
 
     private void HandleDeath()
     {
-        Age++;
+        Age += AGE_PER_DEATH;
 
         if (Age >= MAX_AGE)
         {
+            Age = MAX_AGE;
+            // Clear saved age so next game starts fresh
+            PlayerPrefs.DeleteKey("PlayerAge");
+            PlayerPrefs.Save();
             EventBus.Publish(new PlayerFinalDeathEvent(Age));
             return;
         }
+
+        // Persist new age before scene reloads
+        PlayerPrefs.SetInt("PlayerAge", Age);
+        PlayerPrefs.Save();
 
         ApplyAgeStats();
         EventBus.Publish(new PlayerAgedEvent(Age, MaxTime, Damage));

@@ -41,11 +41,20 @@ public class GameManager : Singleton<GameManager>
         SceneLoader.Instance.ReloadCurrentScene();
     }
 
-    /// <summary>Player reached age 60 — game over.</summary>
+    /// <summary>Player reached age 60 — game over, reload scene from scratch.</summary>
     private void OnPlayerFinalDeath(PlayerFinalDeathEvent evt)
     {
         Debug.Log($"[GameManager] Game Over — player reached age {evt.FinalAge}.");
         SetState(GameState.GameOver);
+
+        // Small delay so any game over UI can show before reload
+        StartCoroutine(ReloadAfterDelay(2.5f));
+    }
+
+    private System.Collections.IEnumerator ReloadAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        SceneLoader.Instance.ReloadCurrentScene();
     }
 }
 
