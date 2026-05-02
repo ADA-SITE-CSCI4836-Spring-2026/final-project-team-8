@@ -6,16 +6,26 @@ public class GameManager : Singleton<GameManager>
 
     public GameState CurrentState { get; private set; }
 
+    // True after the first Awake of this play session — survives scene reloads
+    // because it's static, but resets when Unity exits Play mode.
+    private static bool _sessionStarted = false;
+
     protected override void Awake()
     {
-        base.Awake();
-        CurrentState = GameState.Boot;
+        bool alreadyExists = Instance != null && Instance != this;
+        base.Awake();   // destroys this if duplicate
 
-        // Clear persisted age on fresh boot so Editor play sessions always start at age 20.
-        // In a real build this would only run on first launch — for now wiping on every boot
-        // is the correct behaviour since there's no main menu "continue" flow yet.
-        PlayerPrefs.DeleteKey("PlayerAge");
-        PlayerPrefs.Save();
+        if (alreadyExists) return;  // this instance was destroyed, do nothing
+
+        if (!_sessionStarted)
+        {
+            _sessionStarted = true;
+            CurrentState    = GameState.Boot;
+
+            // Fresh play session — reset age to 20
+            PlayerPrefs.DeleteKey("PlayerAge");
+            PlayerPrefs.Save();
+        }
     }
 
     private void OnEnable()
