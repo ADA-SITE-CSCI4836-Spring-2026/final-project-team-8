@@ -1,8 +1,12 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System.Collections;
 
+/// <summary>
+/// Drives the health bar visuals from <see cref="PlayerTimeChangedEvent"/> published
+/// by <see cref="PlayerStats"/> via the <see cref="EventBus"/>.
+/// The bar decreases automatically as PlayerStats ticks time down each frame.
+/// </summary>
 public class HealthBarGlow : MonoBehaviour
 {
     [Header("References")]
@@ -13,66 +17,49 @@ public class HealthBarGlow : MonoBehaviour
     public TextMeshProUGUI label;
 
     [Header("Settings")]
-    public float maxHealth = 100f;
     public float smoothSpeed = 3.5f;      // higher = snappier lerp
-    public float sheenSpeed = 0.4f;       // how fast the sheen scrolls
-    public bool showLabel = true;
+    public float sheenSpeed  = 0.4f;      // how fast the sheen scrolls
+    public bool  showLabel   = true;
 
     [Header("Glow Intensity")]
     public float glowInnerAlpha = 0.25f;
     public float glowOuterAlpha = 0.09f;
 
     [Header("Vignette")]
-    public Image vignetteOverlay;         // full screen dark overlay Image
+    public Image vignetteOverlay;         // full-screen dark overlay Image
     public float vignetteMaxAlpha = 0.35f;
-
-    [Header("Timer")]
-    public float timeLimit = 60f;         // total seconds
-    public bool timerRunning = false;
-
-    public System.Action onTimerExpired;  // hook your game logic up here
 
     private float _targetFill  = 1f;
     private float _currentFill = 1f;
     private float _sheenOffset = 0f;
-    private float _currentHealth;
-    private float _timeRemaining;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
     void Awake()
     {
-        _currentHealth = maxHealth;
-        _currentFill   = 1f;
-        _targetFill    = 1f;
+        _currentFill = 1f;
+        _targetFill  = 1f;
         ApplyFill(1f);
         SetGlowActive(false);
+    }
+
+    void OnEnable()
+    {
+        EventBus.Subscribe<PlayerTimeChangedEvent>(OnTimeChanged);
+    }
+
+    void OnDisable()
+    {
+        EventBus.Unsubscribe<PlayerTimeChangedEvent>(OnTimeChanged);
     }
 
     void Start()
     {
         SetGlowActive(true);
-        maxHealth      = timeLimit;
-        _timeRemaining = timeLimit;
-        SetHealth(timeLimit);
     }
 
     void Update()
     {
-        // Tick the timer
-        if (timerRunning)
-        {
-            _timeRemaining -= Time.deltaTime;
-            _timeRemaining  = Mathf.Max(_timeRemaining, 0f);
-            SetHealth(_timeRemaining);
-
-            if (_timeRemaining <= 0f)
-            {
-                timerRunning = false;
-                onTimerExpired?.Invoke();
-            }
-        }
-
         // Smooth lerp fill toward target
         _currentFill = Mathf.Lerp(_currentFill, _targetFill,
                                    smoothSpeed * Time.unscaledDeltaTime);
@@ -86,38 +73,30 @@ public class HealthBarGlow : MonoBehaviour
         UpdateVignette();
     }
 
-    // ── Public API ────────────────────────────────────────────────────────────
+    // ── EventBus handler ──────────────────────────────────────────────────────
 
-    public void SetHealth(float newHealth)
+    private void OnTimeChanged(PlayerTimeChangedEvent evt)
     {
-        _currentHealth = Mathf.Clamp(newHealth, 0, maxHealth);
-        _targetFill    = _currentHealth / maxHealth;
+        _targetFill = evt.MaxTime > 0f ? evt.TimeRemaining / evt.MaxTime : 0f;
 
         if (showLabel && label != null)
         {
-            int seconds = Mathf.CeilToInt(_currentHealth);
+            int seconds = Mathf.CeilToInt(evt.TimeRemaining);
             int mins    = seconds / 60;
             int secs    = seconds % 60;
             label.text  = mins > 0 ? $"{mins}:{secs:00}" : $"{secs}s";
         }
     }
 
-    public void SetMaxHealth(float newMax)
+    // ── Public API ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Directly set the bar fill fraction [0,1]. Useful for previewing in editor
+    /// or for non-PlayerStats use cases.
+    /// </summary>
+    public void SetFillFraction(float fraction)
     {
-        maxHealth = newMax;
-        SetHealth(_currentHealth);
-    }
-
-    // ── Timer controls ────────────────────────────────────────────────────────
-
-    public void StartTimer() => timerRunning = true;
-    public void StopTimer()  => timerRunning = false;
-
-    public void ResetTimer()
-    {
-        _timeRemaining = timeLimit;
-        timerRunning   = false;
-        SetHealth(timeLimit);
+        _targetFill = Mathf.Clamp01(fraction);
     }
 
     // ── Internal helpers ──────────────────────────────────────────────────────
