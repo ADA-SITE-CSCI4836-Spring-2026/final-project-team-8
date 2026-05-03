@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering.PostProcessing;
 
 /// <summary>
 /// Handles pause input and directly shows/hides the PauseView.
@@ -8,6 +9,9 @@ public class PauseManager : MonoBehaviour
 {
     [Header("Pause Menu")]
     [SerializeField] private PauseView pauseView;
+
+    [Header("Blur Volume")]
+    [SerializeField] private GameObject blurVolume;
 
     public static bool IsPaused { get; private set; }
 
@@ -24,7 +28,8 @@ public class PauseManager : MonoBehaviour
         LockCursor();
 
         // Ensure pause menu starts hidden
-        pauseView?.Hide();
+        pauseView.Hide();
+        blurVolume.SetActive(false);
     }
 
     private void Update()
@@ -36,16 +41,17 @@ public class PauseManager : MonoBehaviour
     public void TogglePause()
     {
         if (IsPaused) Resume();
-        else          Pause();
+        else Pause();
     }
 
     public void Pause()
     {
-        IsPaused       = true;
+        IsPaused = true;
         Time.timeScale = 0f;
         UnlockCursor();
 
-        pauseView?.Show();
+        blurVolume.SetActive(true);
+        pauseView.Show();
         Debug.Log("[PauseManager] Paused — showing pause menu.");
 
         EventBus.Publish(new GamePausedEvent(true));
@@ -59,11 +65,12 @@ public class PauseManager : MonoBehaviour
 
     private void ResumeInternal()
     {
-        IsPaused       = false;
+        IsPaused = false;
         Time.timeScale = 1f;
         LockCursor();
 
-        pauseView?.Hide();
+        blurVolume.SetActive(false);
+        pauseView.Hide();
         Debug.Log("[PauseManager] Resumed — hiding pause menu.");
 
         EventBus.Publish(new GamePausedEvent(false));
@@ -72,13 +79,13 @@ public class PauseManager : MonoBehaviour
     private static void LockCursor()
     {
         Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible   = false;
+        Cursor.visible = false;
     }
 
     private static void UnlockCursor()
     {
         Cursor.lockState = CursorLockMode.None;
-        Cursor.visible   = true;
+        Cursor.visible = true;
     }
 
     private void OnDestroy()
