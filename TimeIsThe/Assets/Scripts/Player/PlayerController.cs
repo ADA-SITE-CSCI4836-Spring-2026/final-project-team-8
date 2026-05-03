@@ -21,6 +21,9 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        // Ignore all input when paused
+        if (PauseManager.IsPaused) return;
+
         HandleGroundCheck();
         HandleMovement();
         HandleJump();

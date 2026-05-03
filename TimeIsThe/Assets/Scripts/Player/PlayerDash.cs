@@ -55,6 +55,9 @@ public class PlayerDash : MonoBehaviour
 
     private void Update()
     {
+        // Ignore all input when paused
+        if (PauseManager.IsPaused) return;
+
         if (_cooldownTimer > 0f)
             _cooldownTimer -= Time.deltaTime;
 

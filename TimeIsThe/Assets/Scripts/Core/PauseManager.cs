@@ -74,6 +74,19 @@ public class PauseManager : MonoBehaviour
         Debug.Log("[PauseManager] Resumed — hiding pause menu.");
 
         EventBus.Publish(new GamePausedEvent(false));
+
+        // Flush input to prevent buffered actions from executing
+        StartCoroutine(FlushInputNextFrame());
+    }
+
+    /// <summary>
+    /// Waits one frame after unpausing to allow Unity's input system to clear.
+    /// This prevents GetButtonDown/GetKeyDown from triggering on the unpause frame.
+    /// </summary>
+    private System.Collections.IEnumerator FlushInputNextFrame()
+    {
+        yield return null; // Wait one frame
+        Input.ResetInputAxes();
     }
 
     private static void LockCursor()

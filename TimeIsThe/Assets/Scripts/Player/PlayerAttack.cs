@@ -39,6 +39,9 @@ public class PlayerAttack : MonoBehaviour
 
     private void Update()
     {
+        // Ignore all input when paused
+        if (PauseManager.IsPaused) return;
+
         if (Input.GetButtonDown("Fire1") && !_attackPending)
         {
             _animator?.SetTrigger(AttackHash);
