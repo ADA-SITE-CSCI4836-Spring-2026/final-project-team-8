@@ -20,7 +20,6 @@ public class PlayerDash : MonoBehaviour
     [SerializeField] private float dashForce      = 18f;   // impulse strength
     [SerializeField] private float dashDuration   = 0.18f; // seconds the dash lasts
     [SerializeField] private float cooldown       = 3.0f;  // seconds before next dash
-    [SerializeField] private string dashButton    = "Sprint"; // default: Left Shift
 
     [Header("Invincibility")]
     [SerializeField] private float iFrameDuration = 0.4f;  // seconds of invincibility (can exceed dashDuration)
@@ -59,7 +58,7 @@ public class PlayerDash : MonoBehaviour
         if (_cooldownTimer > 0f)
             _cooldownTimer -= Time.deltaTime;
 
-        if (Input.GetButtonDown(dashButton) && !IsDashing && !IsOnCooldown)
+        if (Input.GetKeyDown(KeyCode.Q) && !IsDashing && !IsOnCooldown)
             StartCoroutine(DashRoutine());
     }
 
