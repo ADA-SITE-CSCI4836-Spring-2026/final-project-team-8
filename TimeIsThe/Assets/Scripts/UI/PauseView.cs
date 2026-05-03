@@ -38,6 +38,8 @@ public class PauseView : MonoBehaviour
 
     private void OnRestartGameClicked()
     {
+        PauseManager.Resume();
+        SceneLoader.Instance.ReloadCurrentScene();
     }
 
     private void OnMainMenuClicked()
