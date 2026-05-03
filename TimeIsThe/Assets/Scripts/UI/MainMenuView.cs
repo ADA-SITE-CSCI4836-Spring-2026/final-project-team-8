@@ -11,7 +11,7 @@ public class MainMenuView : UIView
     [SerializeField] private GameObject instructionsPanel;
 
     [Header("Scene")]
-    [SerializeField] private string gameSceneName = "Game";
+    [SerializeField] private string gameSceneName = "arz_ui";
 
     private void Awake()
     {

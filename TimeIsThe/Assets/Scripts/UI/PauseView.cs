@@ -9,14 +9,16 @@ using UnityEngine.UI;
 public class PauseView : MonoBehaviour
 {
     [Header("Buttons")]
-    [SerializeField] private Button resumeButton;
-    [SerializeField] private Button quitButton;
+    [SerializeField] private Button continueButton;
+    [SerializeField] private Button restartGameButton;
+    [SerializeField] private Button mainMenuButton;
     public GameObject pauseMenu;
 
     private void Awake()
     {
-        resumeButton?.onClick.AddListener(OnResumeClicked);
-        quitButton?.onClick.AddListener(OnQuitClicked);
+        continueButton.onClick.AddListener(OnContinueClicked);
+        restartGameButton.onClick.AddListener(OnRestartGameClicked);
+        mainMenuButton.onClick.AddListener(OnMainMenuClicked);
 
         // Hide on start regardless of active state in scene
         pauseMenu.SetActive(false);
@@ -24,24 +26,23 @@ public class PauseView : MonoBehaviour
 
     public void Show()
     {
-        Debug.Log("[PauseView] Showing menu");
         pauseMenu.SetActive(true);
     }
 
     public void Hide()
     {
-        Debug.Log("[PauseView] Hiding menu");
         pauseMenu.SetActive(false);
     }
 
-    private void OnResumeClicked() => PauseManager.Resume();
+    private void OnContinueClicked() => PauseManager.Resume();
 
-    private void OnQuitClicked()
+    private void OnRestartGameClicked()
     {
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#else
-        Application.Quit();
-#endif
+    }
+
+    private void OnMainMenuClicked()
+    {
+        SceneLoader.Instance.LoadScene("MainMenu");
+        PauseManager.Resume();
     }
 }
