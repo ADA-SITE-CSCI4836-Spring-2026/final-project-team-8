@@ -48,13 +48,10 @@ public class GameManager : Singleton<GameManager>
 
     // ── Event handlers ────────────────────────────────────────────────────────
 
-    /// <summary>Player died but still has ages left — respawn at new age.</summary>
+    /// <summary>Player died but still has ages left — stats already reset in PlayerStats, no scene reload needed.</summary>
     private void OnPlayerAged(PlayerAgedEvent evt)
     {
-        // Scene reload handles respawn; SceneLoader reloads the active scene.
-        // Stats are already reset inside PlayerStats.ApplyAgeStats().
         Debug.Log($"[GameManager] Player aged to {evt.NewAge}. MaxTime={evt.NewMaxTime:F1}s  Damage={evt.NewDamage:F1}");
-        SceneLoader.Instance.ReloadCurrentScene();
     }
 
     /// <summary>Player reached age 60 — game over. LoseView handles the UI and restart.</summary>

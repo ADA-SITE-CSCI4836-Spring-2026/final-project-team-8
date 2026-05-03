@@ -46,6 +46,9 @@ public class PlayerStats : MonoBehaviour
     // ── Age progress [0,1] ───────────────────────────────────────────────────
     private float AgeT => Mathf.InverseLerp(MIN_AGE, MAX_AGE, Age);
 
+    private Vector3 _spawnPosition;
+    private Quaternion _spawnRotation;
+
     // ─────────────────────────────────────────────────────────────────────────
 
     private void Awake()
@@ -55,6 +58,9 @@ public class PlayerStats : MonoBehaviour
         Age = PlayerPrefs.GetInt("PlayerAge", MIN_AGE);
         Age = Mathf.Clamp(Age, MIN_AGE, MAX_AGE);
         ApplyAgeStats();
+
+        _spawnPosition = transform.position;
+        _spawnRotation = transform.rotation;
     }
 
     private void Update()
@@ -111,11 +117,11 @@ public class PlayerStats : MonoBehaviour
             return;
         }
 
-        // Persist new age before scene reloads
         PlayerPrefs.SetInt("PlayerAge", Age);
         PlayerPrefs.Save();
 
         ApplyAgeStats();
+        TeleportToSpawn();
         EventBus.Publish(new PlayerAgedEvent(Age, MaxTime, Damage));
     }
 
@@ -126,6 +132,15 @@ public class PlayerStats : MonoBehaviour
         MaxTime       = Mathf.Lerp(START_TIME, END_TIME,    t);
         Damage        = Mathf.Lerp(MIN_DAMAGE,  MAX_DAMAGE, t);
         TimeRemaining = MaxTime;
+    }
+
+    private void TeleportToSpawn()
+    {
+        CharacterController cc = GetComponent<CharacterController>();
+        if (cc != null) cc.enabled = false;
+        transform.position = _spawnPosition;
+        transform.rotation = _spawnRotation;
+        if (cc != null) cc.enabled = true;
     }
 
     private void PublishTimeChanged()

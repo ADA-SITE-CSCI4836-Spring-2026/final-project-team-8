@@ -171,6 +171,8 @@ public class ObstacleSpawner : MonoBehaviour
             obj.transform.localScale *= Random.Range(minScale, maxScale);
             obj.transform.parent      = this.transform;
 
+            EnsureColliders(obj);
+
             spawned++;
         }
 
@@ -326,6 +328,20 @@ public class ObstacleSpawner : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+    void EnsureColliders(GameObject obj)
+    {
+        if (obj.GetComponentInChildren<Collider>() != null) return;
+
+        foreach (Renderer r in obj.GetComponentsInChildren<Renderer>())
+        {
+            BoxCollider box = r.gameObject.AddComponent<BoxCollider>();
+            Bounds local = box.bounds;
+            box.center = r.transform.InverseTransformPoint(local.center);
+            box.size   = r.transform.InverseTransformVector(local.size);
+            box.size   = new Vector3(Mathf.Abs(box.size.x), Mathf.Abs(box.size.y), Mathf.Abs(box.size.z));
+        }
     }
 
     // ── Gizmos ────────────────────────────────────────────────────────────────

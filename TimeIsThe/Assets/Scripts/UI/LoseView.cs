@@ -11,21 +11,15 @@ public class LoseView : MonoBehaviour
     [Header("Optional")]
     [SerializeField] private TextMeshProUGUI finalAgeText;
 
-    private CanvasGroup _canvasGroup;
+    [Header("Panel")]
+    [SerializeField] private GameObject panel;
 
     private void Awake()
     {
-        Debug.Log("[LoseView] Awake called");
-
-        _canvasGroup = GetComponent<CanvasGroup>();
-        if (_canvasGroup == null)
-            _canvasGroup = gameObject.AddComponent<CanvasGroup>();
-
         restartButton?.onClick.AddListener(OnRestartClicked);
         quitButton?.onClick.AddListener(OnQuitClicked);
 
         EventBus.Subscribe<PlayerFinalDeathEvent>(OnFinalDeath);
-        Debug.Log("[LoseView] Subscribed to PlayerFinalDeathEvent");
 
         SetVisible(false);
     }
@@ -51,10 +45,10 @@ public class LoseView : MonoBehaviour
 
     private void SetVisible(bool visible)
     {
-        Debug.Log($"[LoseView] SetVisible({visible})");
-        _canvasGroup.alpha          = visible ? 1f : 0f;
-        _canvasGroup.interactable   = visible;
-        _canvasGroup.blocksRaycasts = visible;
+        if (panel != null)
+            panel.SetActive(visible);
+        else
+            gameObject.SetActive(visible);
     }
 
     private void OnRestartClicked()

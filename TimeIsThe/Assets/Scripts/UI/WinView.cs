@@ -19,7 +19,7 @@ public class WinView : MonoBehaviour
     [SerializeField] private TextMeshProUGUI winText;
     [SerializeField] private TextMeshProUGUI finalAgeText;
 
-    private CanvasGroup _canvasGroup;
+    [SerializeField] private GameObject panel;
 
     private void Awake()
     {
@@ -57,9 +57,10 @@ public class WinView : MonoBehaviour
 
     private void SetVisible(bool visible)
     {
-        _canvasGroup.alpha = visible ? 1f : 0f;
-        _canvasGroup.interactable = visible;
-        _canvasGroup.blocksRaycasts = visible;
+        if (panel != null)
+            panel.SetActive(visible);
+        else
+            gameObject.SetActive(visible);
     }
 
     private void OnStartAgainClicked()
