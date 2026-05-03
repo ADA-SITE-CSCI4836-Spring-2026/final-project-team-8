@@ -108,17 +108,28 @@ public class ObstacleSpawner : MonoBehaviour
         Debug.Log("--- Spawning Trees ---");
         SpawnObjects(treePrefabs, treeCount, treeMinScale, treeMaxScale, minSpacingTrees);
 
+        // Sync physics so freshly spawned obstacle colliders are visible to OverlapSphere
+        Physics.SyncTransforms();
+
         // 2 — Bake NavMesh so enemies can path around the freshly spawned obstacles
-        if (navMeshSurface != null)
+        if (navMeshSurface == null)
         {
-            Debug.Log("--- Baking NavMesh ---");
-            navMeshSurface.BuildNavMesh();
-            Debug.Log("NavMesh baked.");
+            navMeshSurface = canyonMesh.GetComponentInChildren<NavMeshSurface>();
+            if (navMeshSurface == null)
+                navMeshSurface = FindObjectOfType<NavMeshSurface>();
         }
-        else
+
+        if (navMeshSurface == null)
         {
-            Debug.LogWarning("[ObstacleSpawner] NavMeshSurface not assigned — skipping runtime bake. Enemies may not path correctly.");
+            navMeshSurface = canyonMesh.AddComponent<NavMeshSurface>();
+            navMeshSurface.collectObjects = CollectObjects.All;
+            navMeshSurface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
+            Debug.Log("[ObstacleSpawner] No NavMeshSurface found — created one on canyon mesh.");
         }
+
+        Debug.Log("--- Baking NavMesh ---");
+        navMeshSurface.BuildNavMesh();
+        Debug.Log("NavMesh baked.");
 
         // 3 — Spawn enemies after NavMesh is ready
         Debug.Log("--- Spawning Enemies ---");
@@ -230,7 +241,7 @@ public class ObstacleSpawner : MonoBehaviour
     Transform[] GenerateWaypoints(Vector3 center, int count, float radius, Transform parent)
     {
         GameObject waypointContainer = new GameObject("Waypoints");
-        waypointContainer.transform.parent = parent;
+        waypointContainer.transform.parent = parent.parent;
 
         List<Transform> waypoints = new List<Transform>();
 

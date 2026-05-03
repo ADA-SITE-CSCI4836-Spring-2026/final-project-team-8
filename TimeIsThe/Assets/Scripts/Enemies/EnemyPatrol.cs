@@ -10,22 +10,21 @@ public class EnemyPatrol : EnemyBase
 {
     [Header("Patrol Waypoints")]
     [SerializeField] private Transform[] waypoints;
-    [SerializeField] private float waypointTolerance = 0.5f;
+    [SerializeField] private float waypointTolerance = 2.0f;
 
-    private int _waypointIndex;
+    private int  _waypointIndex;
+    private bool _reversing;
 
     /// <summary>Called by ObstacleSpawner to assign runtime-generated waypoints.</summary>
     public void SetWaypoints(Transform[] generatedWaypoints)
     {
         waypoints      = generatedWaypoints;
         _waypointIndex = 0;
-        // Start heading to first waypoint immediately if already in patrol state
-        if (State == AIState.Patrol)
-            SetNextWaypoint();
     }
 
     protected override void OnPatrolEnter()
     {
+        Agent.stoppingDistance = 0f;
         SetNextWaypoint();
     }
 
@@ -36,7 +35,25 @@ public class EnemyPatrol : EnemyBase
         // Arrived at waypoint?
         if (!Agent.pathPending && Agent.remainingDistance <= waypointTolerance)
         {
-            _waypointIndex = (_waypointIndex + 1) % waypoints.Length;
+            if (!_reversing)
+            {
+                _waypointIndex++;
+                if (_waypointIndex >= waypoints.Length)
+                {
+                    _waypointIndex = waypoints.Length - 2;
+                    _reversing = true;
+                }
+            }
+            else
+            {
+                _waypointIndex--;
+                if (_waypointIndex < 0)
+                {
+                    _waypointIndex = 1;
+                    _reversing = false;
+                }
+            }
+            _waypointIndex = Mathf.Clamp(_waypointIndex, 0, waypoints.Length - 1);
             SetNextWaypoint();
         }
     }

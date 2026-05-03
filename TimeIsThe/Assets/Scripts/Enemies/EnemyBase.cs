@@ -91,11 +91,10 @@ public abstract class EnemyBase : MonoBehaviour
             return;
         }
 
-        // Apply speed/distance now — agent should be on NavMesh by Start()
         if (IsAgentReady)
         {
-            Agent.speed            = patrolSpeed;
-            Agent.stoppingDistance = attackRange * 0.9f;
+            Agent.speed = patrolSpeed;
+            EnterPatrol();
         }
         else
         {
@@ -176,7 +175,7 @@ public abstract class EnemyBase : MonoBehaviour
     private void EnterChase()
     {
         State = AIState.Chase;
-        if (IsAgentReady) { Agent.speed = chaseSpeed; Agent.isStopped = false; }
+        if (IsAgentReady) { Agent.speed = chaseSpeed; Agent.stoppingDistance = attackRange * 0.9f; Agent.isStopped = false; }
     }
 
     private void EnterAttack()
