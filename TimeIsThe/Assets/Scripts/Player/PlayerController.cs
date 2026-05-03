@@ -10,6 +10,7 @@ public class PlayerController : MonoBehaviour
 
     private CharacterController _characterController;
     private PlayerAnimator _playerAnimator;
+    private Camera _cam;
     private Vector3 _velocity;
     private bool _isGrounded;
 
@@ -17,6 +18,14 @@ public class PlayerController : MonoBehaviour
     {
         _characterController = GetComponent<CharacterController>();
         _playerAnimator = GetComponent<PlayerAnimator>();
+
+        Animator anim = GetComponent<Animator>();
+        if (anim != null) anim.applyRootMotion = false;
+    }
+
+    private void Start()
+    {
+        _cam = Camera.main;
     }
 
     private void Update()
@@ -40,14 +49,25 @@ public class PlayerController : MonoBehaviour
 
     private void HandleMovement()
     {
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical = Input.GetAxis("Vertical");
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float vertical = Input.GetAxisRaw("Vertical");
 
-        Vector3 direction = transform.right * horizontal + transform.forward * vertical;
+        Vector3 camForward = _cam.transform.forward;
+        Vector3 camRight = _cam.transform.right;
+        camForward.y = 0f;
+        camRight.y = 0f;
+        camForward.Normalize();
+        camRight.Normalize();
+
+        Vector3 direction = camRight * horizontal + camForward * vertical;
         _characterController.Move(direction * moveSpeed * Time.deltaTime);
 
         bool isMoving = direction.magnitude > 0.1f;
         _playerAnimator?.SetMoving(isMoving, direction.magnitude);
+
+        if (isMoving)
+            transform.rotation = Quaternion.Slerp(transform.rotation,
+                Quaternion.LookRotation(direction), 10f * Time.deltaTime);
     }
 
     private void HandleJump()

@@ -103,10 +103,10 @@ public class ObstacleSpawner : MonoBehaviour
 
         // 1 — Spawn obstacles first
         Debug.Log("--- Spawning Rocks ---");
-        SpawnObjects(rockPrefabs, rockCount, rockMinScale, rockMaxScale, minSpacingRocks);
+        SpawnObjects(rockPrefabs, rockCount, rockMinScale, rockMaxScale, minSpacingRocks, false);
 
         Debug.Log("--- Spawning Trees ---");
-        SpawnObjects(treePrefabs, treeCount, treeMinScale, treeMaxScale, minSpacingTrees);
+        SpawnObjects(treePrefabs, treeCount, treeMinScale, treeMaxScale, minSpacingTrees, true);
 
         // Sync physics so freshly spawned obstacle colliders are visible to OverlapSphere
         Physics.SyncTransforms();
@@ -142,7 +142,7 @@ public class ObstacleSpawner : MonoBehaviour
 
     // ── Obstacle spawning (unchanged logic, refactored to use _bounds) ────────
 
-    void SpawnObjects(GameObject[] prefabs, int count, float minScale, float maxScale, float minSpacing)
+    void SpawnObjects(GameObject[] prefabs, int count, float minScale, float maxScale, float minSpacing, bool isTree)
     {
         if (prefabs == null || prefabs.Length == 0)
         {
@@ -171,7 +171,7 @@ public class ObstacleSpawner : MonoBehaviour
             obj.transform.localScale *= Random.Range(minScale, maxScale);
             obj.transform.parent      = this.transform;
 
-            EnsureColliders(obj);
+            EnsureColliders(obj, isTree);
 
             spawned++;
         }
@@ -206,8 +206,8 @@ public class ObstacleSpawner : MonoBehaviour
             Vector3 spawnPos = GetRandomNavMeshPoint();
             if (spawnPos == Vector3.zero) continue;
 
-            // Keep away from other enemies
-            if (IsTooClose(spawnPos, minSpacingEnemies, null)) continue;
+            // Keep away from other enemies (ignore obstacles)
+            if (IsTooCloseToEnemy(spawnPos, minSpacingEnemies)) continue;
 
             // Keep away from the player start position
             if (_playerTransform != null &&
@@ -330,17 +330,47 @@ public class ObstacleSpawner : MonoBehaviour
         return false;
     }
 
-    void EnsureColliders(GameObject obj)
+    /// <summary>Returns true if any enemy (NavMeshAgent) is within minSpacing of point.</summary>
+    bool IsTooCloseToEnemy(Vector3 point, float minSpacing)
     {
-        if (obj.GetComponentInChildren<Collider>() != null) return;
-
-        foreach (Renderer r in obj.GetComponentsInChildren<Renderer>())
+        Collider[] nearby = Physics.OverlapSphere(point, minSpacing);
+        foreach (Collider c in nearby)
         {
-            BoxCollider box = r.gameObject.AddComponent<BoxCollider>();
-            Bounds local = box.bounds;
-            box.center = r.transform.InverseTransformPoint(local.center);
-            box.size   = r.transform.InverseTransformVector(local.size);
-            box.size   = new Vector3(Mathf.Abs(box.size.x), Mathf.Abs(box.size.y), Mathf.Abs(box.size.z));
+            if (c.GetComponentInParent<NavMeshAgent>() != null)
+                return true;
+        }
+        return false;
+    }
+
+    void EnsureColliders(GameObject obj, bool isTree)
+    {
+        if (isTree)
+        {
+            foreach (MeshFilter mf in obj.GetComponentsInChildren<MeshFilter>())
+            {
+                if (mf.gameObject.name.ToLower().Contains("leaves"))
+                    continue;
+                MeshCollider mc = mf.gameObject.AddComponent<MeshCollider>();
+                mc.convex = true;
+            }
+        }
+        else
+        {
+            Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return;
+
+            Bounds worldBounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+                worldBounds.Encapsulate(renderers[i].bounds);
+
+            BoxCollider box = obj.AddComponent<BoxCollider>();
+            box.center = obj.transform.InverseTransformPoint(worldBounds.center);
+            Vector3 size = worldBounds.size;
+            Vector3 scale = obj.transform.lossyScale;
+            box.size = new Vector3(
+                size.x / Mathf.Abs(scale.x),
+                size.y / Mathf.Abs(scale.y),
+                size.z / Mathf.Abs(scale.z));
         }
     }
 

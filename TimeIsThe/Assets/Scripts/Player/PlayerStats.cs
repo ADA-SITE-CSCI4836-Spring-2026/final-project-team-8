@@ -79,6 +79,15 @@ public class PlayerStats : MonoBehaviour
         DeductTime(amount);
     }
 
+    /// <summary>Instantly kills the player (triggers age increase and respawn/game over).</summary>
+    public void Kill()
+    {
+        if (!IsAlive) return;
+        TimeRemaining = 0f;
+        PublishTimeChanged();
+        HandleDeath();
+    }
+
     /// <summary>Add time back (power-up, etc.).</summary>
     public void AddTime(float seconds)
     {
