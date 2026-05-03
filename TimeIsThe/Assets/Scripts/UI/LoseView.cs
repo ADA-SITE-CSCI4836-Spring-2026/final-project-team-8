@@ -1,12 +1,16 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.Rendering.PostProcessing;
 
 public class LoseView : MonoBehaviour
 {
     [Header("Buttons")]
-    [SerializeField] private Button restartButton;
-    [SerializeField] private Button quitButton;
+    [SerializeField] private Button startAgainButton;
+    [SerializeField] private Button mainMenuButton;
+
+    [Header("Blur")]
+    [SerializeField] private PostProcessVolume blurVolume;
 
     [Header("Optional")]
     [SerializeField] private TextMeshProUGUI finalAgeText;
@@ -16,8 +20,8 @@ public class LoseView : MonoBehaviour
 
     private void Awake()
     {
-        restartButton?.onClick.AddListener(OnRestartClicked);
-        quitButton?.onClick.AddListener(OnQuitClicked);
+        startAgainButton.onClick.AddListener(OnStartAgainClicked);
+        mainMenuButton.onClick.AddListener(OnMainMenuClicked);
 
         EventBus.Subscribe<PlayerFinalDeathEvent>(OnFinalDeath);
 
@@ -31,14 +35,16 @@ public class LoseView : MonoBehaviour
 
     private void OnFinalDeath(PlayerFinalDeathEvent evt)
     {
+        GameOverManager.HasLost = true;
+
         Debug.Log($"[LoseView] OnFinalDeath received. Age={evt.FinalAge}");
 
         if (finalAgeText != null)
             finalAgeText.text = $"You reached age {evt.FinalAge}.\nTime ran out.";
 
-        Time.timeScale   = 0f;
+        Time.timeScale = 0f;
         Cursor.lockState = CursorLockMode.None;
-        Cursor.visible   = true;
+        Cursor.visible = true;
 
         SetVisible(true);
     }
@@ -49,23 +55,23 @@ public class LoseView : MonoBehaviour
             panel.SetActive(visible);
         else
             gameObject.SetActive(visible);
+
+        blurVolume.gameObject.SetActive(visible);
     }
 
-    private void OnRestartClicked()
+    private void OnStartAgainClicked()
     {
+        GameOverManager.HasLost = false;
         Time.timeScale = 1f;
         PlayerPrefs.DeleteKey("PlayerAge");
         PlayerPrefs.Save();
         SceneLoader.Instance.ReloadCurrentScene();
     }
 
-    private void OnQuitClicked()
+    private void OnMainMenuClicked()
     {
-        Time.timeScale = 1f;
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#else
-        Application.Quit();
-#endif
+        GameOverManager.HasLost = false;
+        SceneLoader.Instance.LoadScene("MainMenu");
+        PauseManager.Resume();
     }
 }

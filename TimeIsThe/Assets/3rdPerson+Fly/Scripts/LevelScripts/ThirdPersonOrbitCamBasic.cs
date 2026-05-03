@@ -1,11 +1,11 @@
 ﻿using UnityEngine;
 
 // This class corresponds to the 3rd person camera features.
-public class ThirdPersonOrbitCamBasic : MonoBehaviour 
+public class ThirdPersonOrbitCamBasic : MonoBehaviour
 {
 	public Transform player;                                           // Player's reference.
-	public Vector3 pivotOffset = new Vector3(0.0f, 1.7f,  0.0f);       // Offset to repoint the camera.
-	public Vector3 camOffset   = new Vector3(0.0f, 0.0f, -3.0f);       // Offset to relocate the camera related to the player position.
+	public Vector3 pivotOffset = new Vector3(0.0f, 1.7f, 0.0f);       // Offset to repoint the camera.
+	public Vector3 camOffset = new Vector3(0.0f, 0.0f, -3.0f);       // Offset to relocate the camera related to the player position.
 	public float smooth = 10f;                                         // Speed of camera responsiveness.
 	public float horizontalAimingSpeed = 6f;                           // Horizontal turn speed.
 	public float verticalAimingSpeed = 6f;                             // Vertical turn speed.
@@ -44,8 +44,8 @@ public class ThirdPersonOrbitCamBasic : MonoBehaviour
 		defaultFOV = cam.GetComponent<Camera>().fieldOfView;
 		angleH = player.eulerAngles.y;
 
-		ResetTargetOffsets ();
-		ResetFOV ();
+		ResetTargetOffsets();
+		ResetFOV();
 		ResetMaxVerticalAngle();
 
 		// Check for no vertical offset.
@@ -57,7 +57,7 @@ public class ThirdPersonOrbitCamBasic : MonoBehaviour
 	void Update()
 	{
 		// Don't orbit camera while paused
-		if (PauseManager.IsPaused) return;
+		if (PauseManager.IsPaused || WinManager.HasWon || GameOverManager.HasLost) return;
 
 		// Get mouse movement to orbit the camera.
 		// Mouse:
@@ -76,7 +76,7 @@ public class ThirdPersonOrbitCamBasic : MonoBehaviour
 		cam.rotation = aimRotation;
 
 		// Set FOV.
-		cam.GetComponent<Camera>().fieldOfView = Mathf.Lerp (cam.GetComponent<Camera>().fieldOfView, targetFOV,  Time.deltaTime);
+		cam.GetComponent<Camera>().fieldOfView = Mathf.Lerp(cam.GetComponent<Camera>().fieldOfView, targetFOV, Time.deltaTime);
 
 		// Test for collision with the environment based on current camera position.
 		Vector3 baseTempPosition = player.position + camYRotation * targetPivotOffset;
@@ -97,7 +97,7 @@ public class ThirdPersonOrbitCamBasic : MonoBehaviour
 		smoothPivotOffset = Vector3.Lerp(smoothPivotOffset, customOffsetCollision ? pivotOffset : targetPivotOffset, smooth * Time.deltaTime);
 		smoothCamOffset = Vector3.Lerp(smoothCamOffset, customOffsetCollision ? Vector3.zero : noCollisionOffset, smooth * Time.deltaTime);
 
-		cam.position =  player.position + camYRotation * smoothPivotOffset + aimRotation * smoothCamOffset;
+		cam.position = player.position + camYRotation * smoothPivotOffset + aimRotation * smoothCamOffset;
 	}
 
 	// Set camera offsets to custom values.
@@ -161,11 +161,11 @@ public class ThirdPersonOrbitCamBasic : MonoBehaviour
 	// Double check for collisions: concave objects doesn't detect hit from outside, so cast in both directions.
 	bool DoubleViewingPosCheck(Vector3 checkPos)
 	{
-		return ViewingPosCheck (checkPos) && ReverseViewingPosCheck (checkPos);
+		return ViewingPosCheck(checkPos) && ReverseViewingPosCheck(checkPos);
 	}
 
 	// Check for collision from camera to player.
-	bool ViewingPosCheck (Vector3 checkPos)
+	bool ViewingPosCheck(Vector3 checkPos)
 	{
 		// Cast target and direction.
 		Vector3 target = player.position + pivotOffset;
@@ -174,7 +174,7 @@ public class ThirdPersonOrbitCamBasic : MonoBehaviour
 		if (Physics.SphereCast(checkPos, 0.2f, direction, out RaycastHit hit, direction.magnitude))
 		{
 			// ... if it is not the player...
-			if(hit.transform != player && !hit.transform.GetComponent<Collider>().isTrigger)
+			if (hit.transform != player && !hit.transform.GetComponent<Collider>().isTrigger)
 			{
 				// This position isn't appropriate.
 				return false;
@@ -192,7 +192,7 @@ public class ThirdPersonOrbitCamBasic : MonoBehaviour
 		Vector3 direction = checkPos - origin;
 		if (Physics.SphereCast(origin, 0.2f, direction, out RaycastHit hit, direction.magnitude))
 		{
-			if(hit.transform != player && hit.transform != transform && !hit.transform.GetComponent<Collider>().isTrigger)
+			if (hit.transform != player && hit.transform != transform && !hit.transform.GetComponent<Collider>().isTrigger)
 			{
 				return false;
 			}
@@ -203,6 +203,6 @@ public class ThirdPersonOrbitCamBasic : MonoBehaviour
 	// Get camera magnitude.
 	public float GetCurrentPivotMagnitude(Vector3 finalPivotOffset)
 	{
-		return Mathf.Abs ((finalPivotOffset - smoothPivotOffset).magnitude);
+		return Mathf.Abs((finalPivotOffset - smoothPivotOffset).magnitude);
 	}
 }

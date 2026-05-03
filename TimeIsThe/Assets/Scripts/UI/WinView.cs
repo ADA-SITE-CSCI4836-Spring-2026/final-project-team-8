@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.Rendering.PostProcessing;
 
 /// <summary>
 /// Attach to the Win canvas GameObject.
@@ -14,6 +15,9 @@ public class WinView : MonoBehaviour
     [Header("Buttons")]
     [SerializeField] private Button startAgainButton;
     [SerializeField] private Button mainMenuButton;
+
+    [Header("Blur")]
+    [SerializeField] private PostProcessVolume blurVolume;
 
     [Header("Optional")]
     [SerializeField] private TextMeshProUGUI winText;
@@ -40,6 +44,8 @@ public class WinView : MonoBehaviour
 
     public void TriggerWin()
     {
+        WinManager.HasWon = true;
+
         PlayerStats stats = FindObjectOfType<PlayerStats>();
 
         if (winText != null)
@@ -61,10 +67,13 @@ public class WinView : MonoBehaviour
             panel.SetActive(visible);
         else
             gameObject.SetActive(visible);
+
+        blurVolume.gameObject.SetActive(visible);
     }
 
     private void OnStartAgainClicked()
     {
+        WinManager.HasWon = false;
         Time.timeScale = 1f;
         PlayerPrefs.DeleteKey("PlayerAge");
         PlayerPrefs.Save();
@@ -73,6 +82,7 @@ public class WinView : MonoBehaviour
 
     private void OnMainMenuClicked()
     {
+        WinManager.HasWon = false;
         SceneLoader.Instance.LoadScene("MainMenu");
         PauseManager.Resume();
     }

@@ -34,6 +34,8 @@ public class PauseManager : MonoBehaviour
 
     private void Update()
     {
+        if (WinManager.HasWon || GameOverManager.HasLost) return;
+
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P))
             TogglePause();
     }
