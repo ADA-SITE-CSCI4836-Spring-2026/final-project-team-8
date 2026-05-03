@@ -12,8 +12,8 @@ public class WinView : MonoBehaviour
     public static WinView Instance { get; private set; }
 
     [Header("Buttons")]
-    [SerializeField] private Button playAgainButton;
-    [SerializeField] private Button quitButton;
+    [SerializeField] private Button startAgainButton;
+    [SerializeField] private Button mainMenuButton;
 
     [Header("Optional")]
     [SerializeField] private TextMeshProUGUI winText;
@@ -25,12 +25,8 @@ public class WinView : MonoBehaviour
     {
         Instance = this;
 
-        _canvasGroup = GetComponent<CanvasGroup>();
-        if (_canvasGroup == null)
-            _canvasGroup = gameObject.AddComponent<CanvasGroup>();
-
-        playAgainButton?.onClick.AddListener(OnPlayAgainClicked);
-        quitButton?.onClick.AddListener(OnQuitClicked);
+        startAgainButton.onClick.AddListener(OnStartAgainClicked);
+        mainMenuButton.onClick.AddListener(OnMainMenuClicked);
 
         SetVisible(false);
     }
@@ -38,8 +34,8 @@ public class WinView : MonoBehaviour
     private void OnDestroy()
     {
         if (Instance == this) Instance = null;
-        playAgainButton?.onClick.RemoveListener(OnPlayAgainClicked);
-        quitButton?.onClick.RemoveListener(OnQuitClicked);
+        startAgainButton.onClick.RemoveListener(OnStartAgainClicked);
+        mainMenuButton.onClick.RemoveListener(OnMainMenuClicked);
     }
 
     public void TriggerWin()
@@ -52,21 +48,21 @@ public class WinView : MonoBehaviour
         if (finalAgeText != null && stats != null)
             finalAgeText.text = $"Final age: {stats.Age}";
 
-        Time.timeScale       = 0f;
-        Cursor.lockState     = CursorLockMode.None;
-        Cursor.visible       = true;
+        Time.timeScale = 0f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 
         SetVisible(true);
     }
 
     private void SetVisible(bool visible)
     {
-        _canvasGroup.alpha          = visible ? 1f : 0f;
-        _canvasGroup.interactable   = visible;
+        _canvasGroup.alpha = visible ? 1f : 0f;
+        _canvasGroup.interactable = visible;
         _canvasGroup.blocksRaycasts = visible;
     }
 
-    private void OnPlayAgainClicked()
+    private void OnStartAgainClicked()
     {
         Time.timeScale = 1f;
         PlayerPrefs.DeleteKey("PlayerAge");
@@ -74,13 +70,9 @@ public class WinView : MonoBehaviour
         SceneLoader.Instance.ReloadCurrentScene();
     }
 
-    private void OnQuitClicked()
+    private void OnMainMenuClicked()
     {
-        Time.timeScale = 1f;
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#else
-        Application.Quit();
-#endif
+        SceneLoader.Instance.LoadScene("MainMenu");
+        PauseManager.Resume();
     }
 }

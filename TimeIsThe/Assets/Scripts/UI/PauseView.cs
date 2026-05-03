@@ -38,6 +38,9 @@ public class PauseView : MonoBehaviour
 
     private void OnRestartGameClicked()
     {
+        Time.timeScale = 1f;
+        PlayerPrefs.DeleteKey("PlayerAge");
+        PlayerPrefs.Save();
         PauseManager.Resume();
         SceneLoader.Instance.ReloadCurrentScene();
     }
