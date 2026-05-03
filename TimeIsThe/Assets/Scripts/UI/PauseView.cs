@@ -11,7 +11,7 @@ public class PauseView : MonoBehaviour
     [Header("Buttons")]
     [SerializeField] private Button resumeButton;
     [SerializeField] private Button quitButton;
-    public GameObject gameObject;
+    public GameObject pauseMenu;
 
     private void Awake()
     {
@@ -19,17 +19,19 @@ public class PauseView : MonoBehaviour
         quitButton?.onClick.AddListener(OnQuitClicked);
 
         // Hide on start regardless of active state in scene
-        gameObject.SetActive(false);
+        pauseMenu.SetActive(false);
     }
 
     public void Show()
     {
-        gameObject.SetActive(true);
+        Debug.Log("[PauseView] Showing menu");
+        pauseMenu.SetActive(true);
     }
 
     public void Hide()
     {
-        gameObject.SetActive(false);
+        Debug.Log("[PauseView] Hiding menu");
+        pauseMenu.SetActive(false);
     }
 
     private void OnResumeClicked() => PauseManager.Resume();
