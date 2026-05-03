@@ -14,13 +14,14 @@ public class SkeletonEnemy : EnemyPatrol
 {
     protected override void ApplyStats()
     {
-        maxHealth     = 30f;
-        attackDamage  = 8f;
-        attackRange   = 1.5f;
+        maxHealth      = 30f;
+        attackDamage   = 8f;
+        attackRange    = 1.5f;
         attackCooldown = 1.2f;
-        sightRange    = 10f;
-        sightAngle    = 100f;
-        patrolSpeed   = 2.5f;
-        chaseSpeed    = 5f;
+        sightRange     = 10f;
+        sightAngle     = 100f;
+        patrolSpeed    = 2.5f;
+        chaseSpeed     = 5f;
+        timeReward     = 8f;   // skeleton gives 8s — low reward, easy enemy
     }
 }

@@ -6,10 +6,26 @@ public class GameManager : Singleton<GameManager>
 
     public GameState CurrentState { get; private set; }
 
+    // True after the first Awake of this play session — survives scene reloads
+    // because it's static, but resets when Unity exits Play mode.
+    private static bool _sessionStarted = false;
+
     protected override void Awake()
     {
-        base.Awake();
-        CurrentState = GameState.Boot;
+        bool alreadyExists = Instance != null && Instance != this;
+        base.Awake();   // destroys this if duplicate
+
+        if (alreadyExists) return;  // this instance was destroyed, do nothing
+
+        if (!_sessionStarted)
+        {
+            _sessionStarted = true;
+            CurrentState    = GameState.Boot;
+
+            // Fresh play session — reset age to 20
+            PlayerPrefs.DeleteKey("PlayerAge");
+            PlayerPrefs.Save();
+        }
     }
 
     private void OnEnable()
@@ -41,11 +57,13 @@ public class GameManager : Singleton<GameManager>
         SceneLoader.Instance.ReloadCurrentScene();
     }
 
-    /// <summary>Player reached age 60 — game over.</summary>
+    /// <summary>Player reached age 60 — game over. LoseView handles the UI and restart.</summary>
     private void OnPlayerFinalDeath(PlayerFinalDeathEvent evt)
     {
         Debug.Log($"[GameManager] Game Over — player reached age {evt.FinalAge}.");
         SetState(GameState.GameOver);
+        // LoseView listens to PlayerFinalDeathEvent directly and shows itself.
+        // No auto-reload here — the player clicks Restart on the lose screen.
     }
 }
 
